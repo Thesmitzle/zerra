@@ -72,7 +72,6 @@ export function MessageBubble({ message, onDestroy }: MessageBubbleProps) {
           <span className="text-xs text-text-muted ml-1 mb-1 font-medium">
             {isOwn ? "Ti" : message.senderName}
           </span>
-        )}
 
         <div className="relative group">
           {/* Bubble */}
