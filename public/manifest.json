@@ -1,0 +1,16 @@
+{
+  "name": "Zerra",
+  "short_name": "Zerra",
+  "description": "Privacy-first encrypted chat",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0B0F",
+  "theme_color": "#00FFC6",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

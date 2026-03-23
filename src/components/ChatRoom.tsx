@@ -14,6 +14,7 @@ import { TopBar } from "./TopBar";
 import { MessageBubble, SystemMessage } from "./MessageBubble";
 import { MessageInput } from "./MessageInput";
 import { WelcomeModal } from "./WelcomeModal";
+import { usePrivacy } from "@/hooks/usePrivacy";
 import type {
   EncryptedMessage,
   DecryptedMessage,
@@ -130,10 +131,10 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [welcomeSeen, setWelcomeSeen] = useState(false);
   const [socketId, setSocketId] = useState<string | null>(null);
+  usePrivacy(displayName || "");
   const [roomMeta, setRoomMeta] = useState<RoomMeta | null>(null);
   const [roomError, setRoomError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
-
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [typing, setTyping] = useState<TypingState | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
