@@ -1,16 +1,18 @@
 import { ChatRoom } from "@/components/ChatRoom";
 
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export default function RoomPage({ params }: PageProps) {
-  return <ChatRoom roomId={params.id} />;
+export default async function RoomPage({ params }: PageProps) {
+  const { id } = await params;
+  return <ChatRoom roomId={id} />;
 }
 
 export async function generateMetadata({ params }: PageProps) {
+  const { id } = await params;
   return {
-    title: `Room ${params.id.slice(0, 6)}… · Zerra`,
+    title: `Room ${id.slice(0, 6)}… · Zerra`,
     description: "Private encrypted chat room — Zerra",
   };
 }
