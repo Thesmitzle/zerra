@@ -1,10 +1,13 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Use custom server (server.js) — disable Next.js built-in server
-  output: undefined,
-  experimental: {
-    serverComponentsExternalPackages: [],
-  },
+  serverExternalPackages: [],
 };
 
 export default nextConfig;
+```
+
+Spremi (Ctrl+S) i zatvori Notepad. Zatim u cmd-u:
+```
+git add .
+git commit -m "Fix next.config.mjs"
+git push
