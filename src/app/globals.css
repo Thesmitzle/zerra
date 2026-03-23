@@ -1,0 +1,161 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Outfit:wght@300;400;500;600&family=DM+Mono:wght@300;400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-syne: 'Syne', 'Trebuchet MS', sans-serif;
+  --font-outfit: 'Outfit', 'Segoe UI', system-ui, sans-serif;
+  --font-dm-mono: 'DM Mono', 'Consolas', 'Courier New', monospace;
+  --bg: #0b0b0f;
+  --surface: #12121a;
+  --surface-2: #1a1a26;
+  --accent: #00ffc6;
+  --accent-glow: rgba(0, 255, 198, 0.15);
+  --blue: #3b82f6;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --border: rgba(255, 255, 255, 0.06);
+  --radius: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-outfit), system-ui, sans-serif;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 198, 0.3);
+}
+
+/* Selection */
+::selection {
+  background: rgba(0, 255, 198, 0.25);
+  color: #fff;
+}
+
+/* Glass surface */
+.glass {
+  background: rgba(18, 18, 26, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+}
+
+/* Neon glow text */
+.glow-text {
+  color: var(--accent);
+  text-shadow: 0 0 20px rgba(0, 255, 198, 0.5);
+}
+
+/* Accent border glow */
+.accent-border {
+  border: 1px solid rgba(0, 255, 198, 0.2);
+  box-shadow: 0 0 0 1px rgba(0, 255, 198, 0.05) inset;
+}
+
+/* Message bubble animations */
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes messageDestroy {
+  0% { opacity: 1; transform: scale(1); filter: blur(0); }
+  50% { opacity: 0.5; transform: scale(0.96); filter: blur(2px); }
+  100% { opacity: 0; transform: scale(0.9); filter: blur(8px); height: 0; margin: 0; padding: 0; }
+}
+
+@keyframes countdownPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes dotBounce {
+  0%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-4px); }
+}
+
+.message-enter {
+  animation: messageSlideIn 200ms cubic-bezier(0.34, 1.2, 0.64, 1) forwards;
+}
+
+.message-destroy {
+  animation: messageDestroy 500ms ease-out forwards;
+  overflow: hidden;
+}
+
+.countdown-urgent {
+  animation: countdownPulse 600ms ease-in-out infinite;
+  color: #ef4444 !important;
+}
+
+/* Typing dots */
+.typing-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--muted);
+  display: inline-block;
+}
+.typing-dot:nth-child(1) { animation: dotBounce 1.2s ease-in-out infinite 0ms; }
+.typing-dot:nth-child(2) { animation: dotBounce 1.2s ease-in-out infinite 160ms; }
+.typing-dot:nth-child(3) { animation: dotBounce 1.2s ease-in-out infinite 320ms; }
+
+/* Noise texture overlay */
+.noise::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.018;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Input focus ring */
+.zerra-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 1px rgba(0, 255, 198, 0.3), 0 0 12px rgba(0, 255, 198, 0.1);
+}
+
+/* Button press */
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* Gradient mesh background */
+.mesh-bg {
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(0, 255, 198, 0.04) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 80%, rgba(0, 255, 198, 0.03) 0%, transparent 40%),
+    #0b0b0f;
+}
