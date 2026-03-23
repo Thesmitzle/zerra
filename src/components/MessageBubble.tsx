@@ -68,9 +68,9 @@ export function MessageBubble({ message, onDestroy }: MessageBubbleProps) {
     >
       <div className={`flex flex-col ${isOwn ? "items-end" : "items-start"} max-w-[75%]`}>
         {/* Sender name */}
-        {!isOwn && (
+        
           <span className="text-xs text-text-muted ml-1 mb-1 font-medium">
-            {message.senderName}
+            {isOwn ? "Ti" : message.senderName}
           </span>
         )}
 
