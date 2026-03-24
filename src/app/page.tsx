@@ -9,14 +9,14 @@ import {
 import type { RoomExpiry } from "@/types";
 
 const EXPIRY_OPTIONS: { value: RoomExpiry; label: string; desc: string }[] = [
-  { value: "1h", label: "1 hour", desc: "Quick sessions" },
+  { value: "30m", label: "30 min", desc: "Quick sessions" },
+  { value: "1h", label: "1 hour", desc: "Standard" },
   { value: "24h", label: "24 hours", desc: "Day-long" },
-  { value: "7d", label: "7 days", desc: "Extended" },
 ];
 
 export default function LandingPage() {
   const router = useRouter();
-  const [expiry, setExpiry] = useState<RoomExpiry>("24h");
+  const [expiry, setExpiry] = useState<RoomExpiry>("1h");
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
 
@@ -73,13 +73,7 @@ export default function LandingPage() {
         {/* Card */}
         <div style={{ background: "rgba(18,18,26,0.85)", border: "1px solid rgba(0,255,198,0.15)", borderRadius: "16px", padding: "20px", backdropFilter: "blur(12px)", marginBottom: "16px" }}>
 
-          {/* Naslov + logo ispod */}
-          <p style={{ fontSize: "10px", fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.12em", margin: "0 0 10px" }}>Create a private room</p>
-
-          {/* Logo centriran ispod naslova */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px", paddingBottom: "16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-            <img src="/zerra-logo.png" alt="Zerra" style={{ height: "32px", objectFit: "contain" }} />
-          </div>
+          <p style={{ fontSize: "10px", fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.12em", margin: "0 0 16px" }}>Create a private room</p>
 
           <div style={{ marginBottom: "12px" }}>
             <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "6px" }}>Your name (optional)</label>
@@ -142,10 +136,23 @@ export default function LandingPage() {
 
         {/* Footer */}
         <div style={{ textAlign: "center" }}>
-          <span style={{ fontSize: "10px", color: "#9CA3AF", opacity: 0.5, fontFamily: "var(--font-outfit)" }}>
-            <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#00FFC6", marginRight: "6px", verticalAlign: "middle", boxShadow: "0 0 6px rgba(0,255,198,0.8)" }} />
-            Open source · No accounts · No logs · Created by AlphaGe3k
-          </span>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "10px", color: "#9CA3AF", opacity: 0.5, fontFamily: "var(--font-outfit)" }}>
+            <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#00FFC6", boxShadow: "0 0 6px rgba(0,255,198,0.8)", flexShrink: 0 }} />
+            <span>Open source · No accounts · No logs ·</span>
+            <svg width="14" height="14" viewBox="0 0 48 48" fill="none" style={{ flexShrink: 0 }}>
+              <defs>
+                <linearGradient id="fhg" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#00FFC6" />
+                  <stop offset="100%" stopColor="#00B894" />
+                </linearGradient>
+              </defs>
+              <polygon points="24,2 42,12 42,36 24,46 6,36 6,12" fill="none" stroke="url(#fhg)" strokeWidth="2" />
+              <circle cx="24" cy="21" r="6" fill="none" stroke="#00FFC6" strokeWidth="2" />
+              <rect x="21" y="24" width="6" height="7" rx="1" fill="#00FFC6" />
+              <circle cx="24" cy="21" r="2" fill="#00FFC6" />
+            </svg>
+            <span style={{ color: "#E5E7EB", fontWeight: 600 }}>Created by AlphaGe3k</span>
+          </div>
         </div>
       </div>
     </main>
