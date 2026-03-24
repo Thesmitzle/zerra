@@ -11,6 +11,7 @@ import {
 import { getSocket } from "@/lib/socketClient";
 import { TopBar } from "./TopBar";
 import { MessageBubble, SystemMessage } from "./MessageBubble";
+import type { ReplyTo } from "./MessageBubble";
 import { MessageInput } from "./MessageInput";
 import { WelcomeModal } from "./WelcomeModal";
 import { usePrivacy } from "@/hooks/usePrivacy";
@@ -22,55 +23,41 @@ import type {
 } from "@/types";
 
 type SystemEntry = { type: "system"; id: string; text: string };
-type MessageEntry = DecryptedMessage & { type: "message" };
+type MessageEntry = DecryptedMessage & { type: "message"; replyTo?: ReplyTo };
 type ChatEntry = MessageEntry | SystemEntry;
 
 interface ChatRoomProps {
   roomId: string;
 }
 
-// ── Zvuk poput šahovske figure ────────────────────────────────────────────────
 function playChessSound() {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    
-    // Kratki "click" zvuk
     const bufferSize = ctx.sampleRate * 0.08;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
-    
     for (let i = 0; i < bufferSize; i++) {
       const t = i / ctx.sampleRate;
-      // Kombiniraj visoki click s kratkim decay
       data[i] = (Math.random() * 2 - 1) * Math.exp(-t * 80) * 0.6
                + Math.sin(2 * Math.PI * 800 * t) * Math.exp(-t * 40) * 0.4;
     }
-    
     const source = ctx.createBufferSource();
     source.buffer = buffer;
-    
-    // Filter za topliji zvuk
     const filter = ctx.createBiquadFilter();
     filter.type = "bandpass";
     filter.frequency.value = 600;
     filter.Q.value = 0.8;
-    
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.5, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
-    
     source.connect(filter);
     filter.connect(gain);
     gain.connect(ctx.destination);
     source.start();
-    
     setTimeout(() => ctx.close(), 200);
-  } catch (e) {
-    // Tiho ne radi ako browser blokira
-  }
+  } catch (e) {}
 }
 
-// ── Browser notifikacija ──────────────────────────────────────────────────────
 async function requestNotificationPermission() {
   if ("Notification" in window && Notification.permission === "default") {
     await Notification.requestPermission();
@@ -87,12 +74,10 @@ function sendNotification(senderName: string, text: string) {
   }
 }
 
-// ── Name modal ────────────────────────────────────────────────────────────────
 function NameModal({ onConfirm }: { onConfirm: (name: string) => void }) {
   const [name, setName] = useState(
     typeof window !== "undefined" ? sessionStorage.getItem("zerra_name") || "" : ""
   );
-
   return (
     <div className="fixed inset-0 bg-bg/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
       <div className="glass accent-border rounded-2xl p-8 w-full max-w-sm animate-pop-in">
@@ -103,9 +88,7 @@ function NameModal({ onConfirm }: { onConfirm: (name: string) => void }) {
               <circle cx="9" cy="9" r="2.5" fill="#0B0B0F" />
             </svg>
           </div>
-          <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "var(--font-syne)" }}>
-            Entering secure room
-          </h2>
+          <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "var(--font-syne)" }}>Entering secure room</h2>
           <p className="text-sm text-text-muted">Set your display name to continue.</p>
         </div>
         <input
@@ -131,7 +114,6 @@ function NameModal({ onConfirm }: { onConfirm: (name: string) => void }) {
   );
 }
 
-// ── Error state ───────────────────────────────────────────────────────────────
 function ErrorState({ message }: { message: string }) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-center p-4">
@@ -148,7 +130,6 @@ function ErrorState({ message }: { message: string }) {
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
 export function ChatRoom({ roomId }: ChatRoomProps) {
   const [cryptoKey, setCryptoKey] = useState<CryptoKey | null>(null);
   const [keyBase64, setKeyBase64] = useState<string | null>(null);
@@ -163,6 +144,7 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
   const [connected, setConnected] = useState(false);
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [typing, setTyping] = useState<TypingState | null>(null);
+  const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const hasJoined = useRef(false);
@@ -190,34 +172,32 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
       const plaintext = await decryptMessage({ encryptedData: msg.encryptedData, iv: msg.iv }, key);
       const isOwn = msg.senderId === mySocketId;
       const destructAt = msg.selfDestructMs > 0 ? msg.timestamp + msg.selfDestructMs : undefined;
-      const decrypted: MessageEntry = { ...msg, type: "message" as const, plaintext, isOwn, destructAt };
+      const replyTo = (msg as any).replyTo;
+      const decrypted: MessageEntry = { ...msg, type: "message" as const, plaintext, isOwn, destructAt, replyTo };
       setEntries((prev) => [...prev, decrypted]);
-
-      // Zvuk + notifikacija za tuđe poruke
       if (!isOwn) {
         playChessSound();
         sendNotification(msg.senderName, plaintext);
       }
     } catch (err) {
-      console.warn("[Zerra] Failed to decrypt message:", err);
+      console.warn("[Zerra] Failed to decrypt:", err);
     }
   }, []);
 
   useEffect(() => {
     if (!keyLoaded || !cryptoKey) return;
     const socket = getSocket();
-
     socket.on("connect", () => { setConnected(true); setSocketId(socket.id!); });
     socket.on("disconnect", () => setConnected(false));
     socket.on("new-message", (msg: EncryptedMessage) => addMessage(msg, cryptoKey, socket.id!));
     socket.on("message-deleted", ({ messageId }: { messageId: string }) => {
       setEntries((prev) => prev.map((e) => e.type === "message" && e.id === messageId ? { ...e, destroyed: true } : e));
     });
-    socket.on("user-joined", ({ name, participantCount }: { name: string; participantCount: number }) => {
+    socket.on("user-joined", ({ name, participantCount }: any) => {
       addSystem(`${name} joined the room`);
       setRoomMeta((prev) => prev ? { ...prev, participantCount } : null);
     });
-    socket.on("user-left", ({ name, participantCount }: { name: string; participantCount: number }) => {
+    socket.on("user-left", ({ name, participantCount }: any) => {
       addSystem(`${name} left the room`);
       setRoomMeta((prev) => prev ? { ...prev, participantCount } : null);
     });
@@ -230,7 +210,6 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
         setTyping(null);
       }
     });
-
     return () => {
       socket.off("connect"); socket.off("disconnect"); socket.off("new-message");
       socket.off("message-deleted"); socket.off("user-joined"); socket.off("user-left"); socket.off("peer-typing");
@@ -240,10 +219,7 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
   useEffect(() => {
     if (!displayName || !connected || !keyLoaded || hasJoined.current) return;
     hasJoined.current = true;
-
-    // Traži dozvolu za notifikacije
     requestNotificationPermission();
-
     const socket = getSocket();
     socket.emit("join-room", { roomId, name: displayName }, (res: any) => {
       if (res.error) { setRoomError(res.error); return; }
@@ -252,10 +228,15 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
     });
   }, [displayName, connected, keyLoaded, roomId, addSystem]);
 
-  async function handleSend(text: string, selfDestructMs: number) {
+  async function handleSend(text: string, selfDestructMs: number, reply?: ReplyTo) {
     if (!cryptoKey || !displayName) return;
     const { encryptedData, iv } = await encryptMessage(text, cryptoKey);
-    getSocket().emit("send-message", { encryptedData, iv, selfDestructMs, messageId: uuidv4() });
+    getSocket().emit("send-message", {
+      encryptedData, iv, selfDestructMs,
+      messageId: uuidv4(),
+      replyTo: reply || null,
+    });
+    setReplyTo(null);
   }
 
   function handleTyping(isTyping: boolean) {
@@ -265,6 +246,16 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
   function handleDestroy(messageId: string) {
     getSocket().emit("delete-message", { messageId });
     setEntries((prev) => prev.filter((e) => !(e.type === "message" && e.id === messageId)));
+  }
+
+  function handleScrollTo(messageId: string) {
+    const el = document.getElementById(`msg-${messageId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.style.transition = "background 0.3s ease";
+      el.style.background = "rgba(0,255,198,0.08)";
+      setTimeout(() => { el.style.background = ""; }, 1500);
+    }
   }
 
   if (keyError) return <ErrorState message="No encryption key found in the URL." />;
@@ -300,7 +291,15 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
           {entries.map((entry) => {
             if (entry.type === "system") return <SystemMessage key={entry.id} text={entry.text} />;
             if (entry.destroyed) return null;
-            return <MessageBubble key={entry.id} message={entry} onDestroy={handleDestroy} />;
+            return (
+              <MessageBubble
+                key={entry.id}
+                message={entry}
+                onDestroy={handleDestroy}
+                onReply={setReplyTo}
+                onScrollTo={handleScrollTo}
+              />
+            );
           })}
 
           {typing && (
@@ -325,6 +324,8 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
         onTyping={handleTyping}
         disabled={!connected || !keyLoaded}
         placeholder={connected ? "Type a message…" : "Connecting…"}
+        replyTo={replyTo}
+        onCancelReply={() => setReplyTo(null)}
       />
     </div>
   );
