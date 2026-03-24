@@ -156,7 +156,12 @@ app.prepare().then(() => {
   });
 
   // Next.js handler
-  expressApp.all("*", (req, res) => handle(req, res));
+expressApp.use("/api", (req, res, next) => {
+  next();
+});  
+expressApp.all("*", (req, res) => {
+  return handle(req, res);
+});
 
   const httpServer = createServer(expressApp);
 
