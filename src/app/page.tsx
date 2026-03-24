@@ -20,9 +20,17 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
   const [muted, setMuted] = useState(false);
+  const [accessCode, setAccessCode] = useState("");
+  const [codeError, setCodeError] = useState(false);
+  const [codeVerified, setCodeVerified] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
+    // Check if already verified in session
+    if (sessionStorage.getItem("zerra_verified") === "true") {
+      setCodeVerified(true);
+    }
     if (audioRef.current) {
       audioRef.current.volume = 0.12;
       audioRef.current.play().catch(() => {});
@@ -33,6 +41,29 @@ export default function LandingPage() {
     if (audioRef.current) {
       audioRef.current.muted = !audioRef.current.muted;
       setMuted((prev) => !prev);
+    }
+  }
+
+  async function verifyCode() {
+    if (!accessCode.trim() || verifying) return;
+    setVerifying(true);
+    setCodeError(false);
+    try {
+      const res = await fetch("/api/verify-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: accessCode.trim() }),
+      });
+      if (res.ok) {
+        sessionStorage.setItem("zerra_verified", "true");
+        setCodeVerified(true);
+      } else {
+        setCodeError(true);
+      }
+    } catch {
+      setCodeError(true);
+    } finally {
+      setVerifying(false);
     }
   }
 
@@ -84,7 +115,7 @@ export default function LandingPage() {
         )}
       </button>
 
-      {/* Pozadina — žena */}
+      {/* Pozadina */}
       <div style={{ position: "fixed", inset: 0, zIndex: 0 }}>
         <img alt="" src="/zerra-mascot.png" style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 55%", filter: "brightness(0.25) saturate(0.8)", pointerEvents: "none" }} />
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(11,11,15,0.5) 0%, rgba(11,11,15,0.3) 40%, rgba(11,11,15,0.85) 80%, rgba(11,11,15,1) 100%)" }} />
@@ -97,7 +128,7 @@ export default function LandingPage() {
       {/* Content */}
       <div style={{ position: "relative", zIndex: 10, width: "100%", maxWidth: "400px" }}>
 
-        {/* Hero text */}
+        {/* Hero */}
         <div style={{ textAlign: "center", marginBottom: "20px" }}>
           <h1 style={{ fontSize: "28px", fontWeight: 800, lineHeight: 1.15, margin: "0 0 8px", letterSpacing: "-0.02em", fontFamily: "var(--font-syne)" }}>
             <span style={{ color: "#E5E7EB" }}>Chat without</span>
@@ -110,54 +141,89 @@ export default function LandingPage() {
           </p>
         </div>
 
-        {/* Card */}
-        <div style={{ background: "rgba(18,18,26,0.85)", border: "1px solid rgba(0,255,198,0.15)", borderRadius: "16px", padding: "20px", backdropFilter: "blur(12px)", marginBottom: "16px" }}>
-
-          <p style={{ fontSize: "10px", fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.12em", margin: "0 0 16px" }}>Create a private room</p>
-
-          <div style={{ marginBottom: "12px" }}>
-            <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "6px" }}>Your name (optional)</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Anonymous"
-              maxLength={24}
-              style={{ width: "100%", background: "rgba(26,26,38,0.9)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", padding: "10px 14px", color: "#E5E7EB", fontSize: "13px", outline: "none", boxSizing: "border-box", fontFamily: "var(--font-outfit)" }}
-            />
-          </div>
-
-          <div style={{ marginBottom: "16px" }}>
-            <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "6px" }}>Room expires after</label>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px" }}>
-              {EXPIRY_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setExpiry(opt.value)}
-                  style={{ padding: "8px 4px", borderRadius: "10px", border: "1px solid", borderColor: expiry === opt.value ? "#00FFC6" : "rgba(255,255,255,0.06)", background: expiry === opt.value ? "#00FFC6" : "rgba(26,26,38,0.9)", color: expiry === opt.value ? "#0B0B0F" : "#9CA3AF", cursor: "pointer", textAlign: "center", transition: "all 0.15s", fontFamily: "var(--font-outfit)" }}
-                >
-                  <div style={{ fontSize: "12px", fontWeight: 600 }}>{opt.label}</div>
-                  <div style={{ fontSize: "9px", opacity: 0.7, marginTop: "1px" }}>{opt.desc}</div>
-                </button>
-              ))}
+        {/* Access code gate */}
+        {!codeVerified ? (
+          <div style={{ background: "rgba(18,18,26,0.85)", border: "1px solid rgba(0,255,198,0.15)", borderRadius: "16px", padding: "20px", backdropFilter: "blur(12px)", marginBottom: "16px" }}>
+            <p style={{ fontSize: "10px", fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.12em", margin: "0 0 16px" }}>
+              🔐 Access Required
+            </p>
+            <p style={{ fontSize: "12px", color: "#9CA3AF", marginBottom: "14px", lineHeight: 1.5 }}>
+              Zerra is invite-only. Enter your access code to continue.
+            </p>
+            <div style={{ marginBottom: "12px" }}>
+              <input
+                type="text"
+                value={accessCode}
+                onChange={(e) => { setAccessCode(e.target.value.toUpperCase()); setCodeError(false); }}
+                onKeyDown={(e) => e.key === "Enter" && verifyCode()}
+                placeholder="XXXX-XXXX-XXXX"
+                maxLength={20}
+                autoFocus
+                style={{ width: "100%", background: "rgba(26,26,38,0.9)", border: `1px solid ${codeError ? "#EF4444" : "rgba(255,255,255,0.06)"}`, borderRadius: "10px", padding: "10px 14px", color: "#E5E7EB", fontSize: "14px", outline: "none", boxSizing: "border-box", fontFamily: "monospace", letterSpacing: "0.1em", textAlign: "center" }}
+              />
+              {codeError && (
+                <p style={{ fontSize: "11px", color: "#EF4444", marginTop: "6px", textAlign: "center" }}>
+                  Invalid access code. Please try again.
+                </p>
+              )}
             </div>
+            <button
+              onClick={verifyCode}
+              disabled={verifying || !accessCode.trim()}
+              style={{ width: "100%", padding: "12px", background: "#00FFC6", color: "#0B0B0F", fontSize: "13px", fontWeight: 800, border: "none", borderRadius: "12px", cursor: verifying ? "not-allowed" : "pointer", opacity: verifying || !accessCode.trim() ? 0.6 : 1, fontFamily: "var(--font-syne)" }}
+            >
+              {verifying ? "Verifying…" : "Enter Zerra"}
+            </button>
           </div>
+        ) : (
+          /* Main card — prikaže se nakon verifikacije */
+          <div style={{ background: "rgba(18,18,26,0.85)", border: "1px solid rgba(0,255,198,0.15)", borderRadius: "16px", padding: "20px", backdropFilter: "blur(12px)", marginBottom: "16px" }}>
+            <p style={{ fontSize: "10px", fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.12em", margin: "0 0 16px" }}>Create a private room</p>
 
-          <button
-            onClick={createRoom}
-            disabled={loading}
-            style={{ width: "100%", padding: "12px", background: "#00FFC6", color: "#0B0B0F", fontSize: "13px", fontWeight: 800, border: "none", borderRadius: "12px", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", boxShadow: "0 0 20px rgba(0,255,198,0.2)", fontFamily: "var(--font-syne)" }}
-          >
-            {loading ? "Generating key…" : (
-              <>
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-                Create Encrypted Room
-              </>
-            )}
-          </button>
-        </div>
+            <div style={{ marginBottom: "12px" }}>
+              <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "6px" }}>Your name (optional)</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Anonymous"
+                maxLength={24}
+                style={{ width: "100%", background: "rgba(26,26,38,0.9)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", padding: "10px 14px", color: "#E5E7EB", fontSize: "13px", outline: "none", boxSizing: "border-box", fontFamily: "var(--font-outfit)" }}
+              />
+            </div>
+
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "6px" }}>Room expires after</label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px" }}>
+                {EXPIRY_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setExpiry(opt.value)}
+                    style={{ padding: "8px 4px", borderRadius: "10px", border: "1px solid", borderColor: expiry === opt.value ? "#00FFC6" : "rgba(255,255,255,0.06)", background: expiry === opt.value ? "#00FFC6" : "rgba(26,26,38,0.9)", color: expiry === opt.value ? "#0B0B0F" : "#9CA3AF", cursor: "pointer", textAlign: "center", transition: "all 0.15s", fontFamily: "var(--font-outfit)" }}
+                  >
+                    <div style={{ fontSize: "12px", fontWeight: 600 }}>{opt.label}</div>
+                    <div style={{ fontSize: "9px", opacity: 0.7, marginTop: "1px" }}>{opt.desc}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={createRoom}
+              disabled={loading}
+              style={{ width: "100%", padding: "12px", background: "#00FFC6", color: "#0B0B0F", fontSize: "13px", fontWeight: 800, border: "none", borderRadius: "12px", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", boxShadow: "0 0 20px rgba(0,255,198,0.2)", fontFamily: "var(--font-syne)" }}
+            >
+              {loading ? "Generating key…" : (
+                <>
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                  </svg>
+                  Create Encrypted Room
+                </>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Trust pills */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px", marginBottom: "16px" }}>
@@ -178,7 +244,7 @@ export default function LandingPage() {
         <div style={{ textAlign: "center" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "10px", color: "#9CA3AF", opacity: 0.5, fontFamily: "var(--font-outfit)" }}>
             <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#00FFC6", boxShadow: "0 0 6px rgba(0,255,198,0.8)", flexShrink: 0 }} />
-            <span>Open source · No accounts · No logs ·</span>
+            <span>Invite only · No accounts · No logs ·</span>
             <svg width="14" height="14" viewBox="0 0 48 48" fill="none" style={{ flexShrink: 0 }}>
               <defs>
                 <linearGradient id="fhg" x1="0%" y1="0%" x2="100%" y2="100%">
