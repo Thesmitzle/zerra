@@ -74,46 +74,6 @@ function sendNotification(senderName: string, text: string) {
   }
 }
 
-function NameModal({ onConfirm }: { onConfirm: (name: string) => void }) {
-  const [name, setName] = useState(
-    typeof window !== "undefined" ? sessionStorage.getItem("zerra_name") || "" : ""
-  );
-  return (
-    <div className="fixed inset-0 bg-bg/90 backdrop-blur-md flex items-center justify-center z-50 p-4">
-      <div className="glass accent-border rounded-2xl p-8 w-full max-w-sm animate-pop-in">
-        <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-accent flex items-center justify-center shadow-glow mx-auto mb-4">
-            <svg width="22" height="22" viewBox="0 0 18 18" fill="none">
-              <path d="M9 1.5L16.5 5.25V12.75L9 16.5L1.5 12.75V5.25L9 1.5Z" stroke="#0B0B0F" strokeWidth="1.5" strokeLinejoin="round" />
-              <circle cx="9" cy="9" r="2.5" fill="#0B0B0F" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold mb-2" style={{ fontFamily: "var(--font-syne)" }}>Entering secure room</h2>
-          <p className="text-sm text-text-muted">Set your display name to continue.</p>
-        </div>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && onConfirm(name.trim() || "Anonymous")}
-          placeholder="Anonymous"
-          maxLength={24}
-          autoFocus
-          className="zerra-input w-full bg-surface-2 border border-border rounded-xl px-4 py-3 text-text-primary placeholder-text-muted text-sm mb-4 transition-all duration-200"
-          style={{ fontFamily: "var(--font-outfit)" }}
-        />
-        <button
-          onClick={() => onConfirm(name.trim() || "Anonymous")}
-          className="btn-press w-full bg-accent text-bg font-bold py-3 rounded-xl text-sm transition-all duration-200 hover:shadow-glow"
-          style={{ fontFamily: "var(--font-syne)" }}
-        >
-          Enter Room
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function ErrorState({ message }: { message: string }) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-center p-4">
@@ -261,20 +221,24 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
   if (keyError) return <ErrorState message="No encryption key found in the URL." />;
   if (roomError) return <ErrorState message={roomError} />;
   if (!welcomeSeen) return <WelcomeModal onEnter={() => setWelcomeSeen(true)} />;
-  if (!displayName) return (
-    <NameModal onConfirm={(name) => {
-      sessionStorage.setItem("zerra_name", name);
-      setDisplayName(name);
-    }} />
-  );
+  if (!displayName) {
+    const savedName = sessionStorage.getItem("zerra_name") || "Anonymous";
+    setDisplayName(savedName);
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex flex-col mesh-bg noise" style={{ backgroundImage: "radial-gradient(ellipse at 30% 40%, rgba(0,255,198,0.03) 0%, transparent 50%), linear-gradient(#0B0B0F, #0B0B0F)" }}>
       <TopBar roomId={roomId} expiresAt={roomMeta?.expiresAt ?? null} participantCount={roomMeta?.participantCount ?? 0} keyBase64={keyBase64} keyLoaded={keyLoaded} />
 
       {!connected && keyLoaded && (
-        <div className="text-center py-2 text-xs text-yellow-400 bg-yellow-400/10 border-b border-yellow-400/20">
-          ⚠ Reconnecting…
+        <div style={{ textAlign: "center", padding: "8px", fontSize: "12px", background: "rgba(234,179,8,0.1)", borderBottom: "1px solid rgba(234,179,8,0.2)" }}>
+          <button
+            onClick={() => window.location.reload()}
+            style={{ background: "#00FFC6", color: "#0B0B0F", fontSize: "11px", fontWeight: 700, padding: "4px 12px", borderRadius: "8px", border: "none", cursor: "pointer" }}
+          >
+            Reconnect
+          </button>
         </div>
       )}
 

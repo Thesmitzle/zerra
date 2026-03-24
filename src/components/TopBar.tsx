@@ -16,9 +16,9 @@ function formatTimeLeft(ms: number): string {
   const s = Math.floor(ms / 1000);
   if (s < 60) return `${s}s`;
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ${s % 60}s`;
+  if (m < 60) return `${m}m`;
   const h = Math.floor(m / 60);
-  return `${h}h ${m % 60}m`;
+  return `${h}h`;
 }
 
 function QRModal({ url, onClose }: { url: string; onClose: () => void }) {
@@ -39,23 +39,17 @@ function QRModal({ url, onClose }: { url: string; onClose: () => void }) {
           <p className="font-bold text-text-primary mb-1" style={{ fontFamily: "var(--font-syne)" }}>
             Scan to join
           </p>
-          <p className="text-xs text-text-muted">Podijeli QR kod za ulaz u sobu</p>
+          <p className="text-xs text-text-muted">Share QR code to enter the room</p>
         </div>
-
         <div className="rounded-xl overflow-hidden" style={{ border: "2px solid rgba(0,255,198,0.2)" }}>
-          <img src={qrUrl} alt="QR kod" width={200} height={200} />
+          <img src={qrUrl} alt="QR code" width={200} height={200} />
         </div>
-
-        <p className="text-xs text-text-muted text-center break-all px-2" style={{ fontFamily: "var(--font-dm-mono)", fontSize: "9px" }}>
-          {url.slice(0, 50)}...
-        </p>
-
         <button
           onClick={onClose}
           className="btn-press w-full py-2.5 rounded-xl text-sm font-semibold text-bg transition-all"
           style={{ background: "#00FFC6" }}
         >
-          Zatvori
+          Close
         </button>
       </div>
     </div>
@@ -106,24 +100,12 @@ export function TopBar({ roomId, expiresAt, participantCount, keyBase64, keyLoad
 
       <header className="glass border-b border-border px-4 py-3 flex items-center justify-between sticky top-0 z-20">
         {/* Left: Logo */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center shadow-glow flex-shrink-0">
-              <svg width="14" height="14" viewBox="0 0 18 18" fill="none">
-                <path d="M9 1.5L16.5 5.25V12.75L9 16.5L1.5 12.75V5.25L9 1.5Z" stroke="#0B0B0F" strokeWidth="1.5" strokeLinejoin="round" />
-                <circle cx="9" cy="9" r="2.5" fill="#0B0B0F" />
-              </svg>
-            </div>
-            <span className="font-bold text-base text-text-primary" style={{ fontFamily: "var(--font-syne)" }}>Zerra</span>
-          </div>
-          <span className="text-border text-lg select-none">·</span>
-          <span className="text-xs text-text-muted font-mono hidden sm:block" style={{ fontFamily: "var(--font-dm-mono)" }}>
-            {roomId}
-          </span>
+        <div className="flex items-center gap-2">
+          <img src="/zerra-logo2.png" alt="Zerra" style={{ height: "28px", objectFit: "contain" }} />
         </div>
 
         {/* Center: E2E indicator */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center">
           <div className="flex items-center gap-1.5 bg-accent/10 border border-accent/20 rounded-full px-3 py-1">
             <span className="w-1.5 h-1.5 rounded-full bg-accent shadow-glow animate-pulse flex-shrink-0" />
             <span className="text-xs font-medium text-accent hidden sm:block">End-to-end encrypted</span>
@@ -134,7 +116,7 @@ export function TopBar({ roomId, expiresAt, participantCount, keyBase64, keyLoad
         {/* Right: Actions */}
         <div className="flex items-center gap-2">
           {/* Participants */}
-          <div className="flex items-center gap-1.5 text-xs text-text-muted">
+          <div className="flex items-center gap-1 text-xs text-text-muted">
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <circle cx="4.5" cy="3" r="2" stroke="currentColor" strokeWidth="1.2" />
               <path d="M1 10c0-1.933 1.567-3.5 3.5-3.5S8 8.067 8 10" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
@@ -144,10 +126,17 @@ export function TopBar({ roomId, expiresAt, participantCount, keyBase64, keyLoad
             <span>{participantCount}</span>
           </div>
 
-          {/* Expiry */}
+          {/* Expiry — fiksna širina da ne prelazi u drugi red */}
           {timeLeft && (
-            <div className={`flex items-center gap-1 text-xs rounded-full px-2.5 py-1 border ${isUrgent ? "text-red-400 border-red-500/30 bg-red-500/10" : "text-text-muted border-border bg-surface-2"}`}>
-              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+            <div
+              className={`flex items-center gap-1 text-xs rounded-full border ${
+                isUrgent
+                  ? "text-red-400 border-red-500/30 bg-red-500/10"
+                  : "text-text-muted border-border bg-surface-2"
+              }`}
+              style={{ padding: "3px 8px", minWidth: "48px", justifyContent: "center", whiteSpace: "nowrap" }}
+            >
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ flexShrink: 0 }}>
                 <circle cx="5" cy="5" r="4" stroke="currentColor" strokeWidth="1.2" />
                 <path d="M5 2.5V5l1.5 1.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
               </svg>
@@ -155,11 +144,10 @@ export function TopBar({ roomId, expiresAt, participantCount, keyBase64, keyLoad
             </div>
           )}
 
-          {/* QR kod */}
+          {/* QR */}
           <button
             onClick={() => setShowQR(true)}
             className="btn-press flex items-center gap-1.5 text-xs bg-surface-2 border border-border rounded-lg px-2.5 py-1.5 text-text-muted hover:text-accent hover:border-accent/30 transition-all duration-150"
-            title="QR kod"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
               <rect x="1" y="1" width="5" height="5" rx="1" stroke="currentColor" strokeWidth="1.2" />
