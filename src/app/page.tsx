@@ -154,7 +154,7 @@ export default function LandingPage() {
               <input
                 type="text"
                 value={accessCode}
-                onChange={(e) => { setAccessCode(e.target.value.toUpperCase()); setCodeError(false); }}
+                onChange={(e) => { setAccessCode(e.target.value); setCodeError(false); }}
                 onKeyDown={(e) => e.key === "Enter" && verifyCode()}
                 placeholder="XXXX-XXXX-XXXX"
                 maxLength={20}
