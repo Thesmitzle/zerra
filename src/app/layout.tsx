@@ -6,13 +6,14 @@ export const metadata: Metadata = {
   description:
     "Privacy-first, end-to-end encrypted ephemeral chat. The server never sees your messages.",
   icons: {
-    icon: "/favicon.svg",
-  },
-  openGraph: {
-    title: "Zerra",
-    description: "End-to-end encrypted. Zero knowledge. Self-destructing.",
-    type: "website",
-  },
+  icon: [
+    { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+    { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+  ],
+  apple: [
+    { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+  ],
+},
 };
 
 export const viewport: Viewport = {
