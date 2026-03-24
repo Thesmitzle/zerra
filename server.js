@@ -1,6 +1,6 @@
 /**
- * Zerra — Custom Express + Socket.io Server
- * The server NEVER sees plaintext. It only relays encrypted blobs.
+ * Zerra — Custom Express + Socket.io Server s Redis persistencijom
+ * Server NIKAD ne vidi plaintext. Samo releja enkriptirane blobove.
  */
 
 const { createServer } = require("http");
@@ -8,90 +8,122 @@ const { Server } = require("socket.io");
 const express = require("express");
 const next = require("next");
 const { v4: uuidv4 } = require("uuid");
+const Redis = require("ioredis");
 
 const dev = process.env.NODE_ENV !== "production";
-const hostname = process.env.HOSTNAME || "localhost";
+const hostname = process.env.HOSTNAME || "0.0.0.0";
 const port = parseInt(process.env.PORT || "3000", 10);
 
-const app = next({ dev, hostname, port });
-const handle = app.getRequestHandler();
+// ── Redis klijent ─────────────────────────────────────────────────────────────
+const redis = new Redis(process.env.REDIS_URL || "redis://localhost:6379", {
+  maxRetriesPerRequest: 3,
+  retryStrategy: (times) => Math.min(times * 200, 2000),
+  lazyConnect: false,
+});
 
-// ── Room store ────────────────────────────────────────────────────────────────
-// rooms[roomId] = { createdAt, expiresAt, messages: [], participants: Set }
-const rooms = new Map();
+redis.on("connect", () => console.log("[Redis] Spojen ✅"));
+redis.on("error", (err) => console.error("[Redis] Greška:", err.message));
 
+// ── Room helpers ──────────────────────────────────────────────────────────────
 const ROOM_EXPIRY_OPTIONS = {
-  "15m": 15 * 60 * 1000,
-  "30m": 30 * 60 * 1000,
-  "1h": 60 * 60 * 1000,
+  "15m": 15 * 60,
+  "30m": 30 * 60,
+  "1h":  60 * 60,
 };
 
-function createRoom(expiry = "24h") {
+async function createRoom(expiry = "30m") {
   const roomId = uuidv4().replace(/-/g, "").slice(0, 12);
-  const expiryMs = ROOM_EXPIRY_OPTIONS[expiry] || ROOM_EXPIRY_OPTIONS["24h"];
-  rooms.set(roomId, {
+  const ttl = ROOM_EXPIRY_OPTIONS[expiry] || ROOM_EXPIRY_OPTIONS["30m"];
+  const expiresAt = Date.now() + ttl * 1000;
+
+  const roomData = {
     id: roomId,
     createdAt: Date.now(),
-    expiresAt: Date.now() + expiryMs,
-    messages: [],
-    participants: new Set(),
+    expiresAt,
     messageCount: 0,
-  });
+    participants: 0,
+  };
+
+  await redis.setex(`room:${roomId}`, ttl, JSON.stringify(roomData));
   return roomId;
 }
 
-function getRoom(roomId) {
-  const room = rooms.get(roomId);
-  if (!room) return null;
-  if (Date.now() > room.expiresAt) {
-    rooms.delete(roomId);
-    return null;
-  }
-  return room;
+async function getRoom(roomId) {
+  const data = await redis.get(`room:${roomId}`);
+  if (!data) return null;
+  return JSON.parse(data);
 }
 
-function cleanExpiredRooms() {
-  const now = Date.now();
-  for (const [id, room] of rooms.entries()) {
-    if (now > room.expiresAt) {
-      rooms.delete(id);
-    }
+async function updateRoom(roomId, updates) {
+  const room = await getRoom(roomId);
+  if (!room) return null;
+  const updated = { ...room, ...updates };
+  const ttl = await redis.ttl(`room:${roomId}`);
+  if (ttl > 0) {
+    await redis.setex(`room:${roomId}`, ttl, JSON.stringify(updated));
   }
+  return updated;
 }
-setInterval(cleanExpiredRooms, 60 * 1000); // every minute
+
+async function saveMessage(roomId, message) {
+  const ttl = await redis.ttl(`room:${roomId}`);
+  if (ttl <= 0) return;
+  await redis.setex(
+    `msg:${roomId}:${message.id}`,
+    ttl,
+    JSON.stringify(message)
+  );
+  await redis.expire(`room:${roomId}`, ttl);
+}
+
+async function deleteMessage(roomId, messageId) {
+  await redis.del(`msg:${roomId}:${messageId}`);
+}
 
 // ── Rate limiter ──────────────────────────────────────────────────────────────
 const rateLimits = new Map();
 function isRateLimited(socketId) {
   const now = Date.now();
   const last = rateLimits.get(socketId) || 0;
-  if (now - last < 1000) return true; // 1 message/sec
+  if (now - last < 1000) return true;
   rateLimits.set(socketId, now);
   return false;
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
+const app = next({ dev, hostname, port });
+const handle = app.getRequestHandler();
+
 app.prepare().then(() => {
   const expressApp = express();
   expressApp.use(express.json());
 
-  // REST: create room
-  expressApp.post("/api/rooms", (req, res) => {
-    const { expiry } = req.body;
-    const roomId = createRoom(expiry);
-    res.json({ roomId });
+  // REST: kreiraj sobu
+  expressApp.post("/api/rooms", async (req, res) => {
+    try {
+      const { expiry } = req.body;
+      const roomId = await createRoom(expiry);
+      res.json({ roomId });
+    } catch (err) {
+      console.error("[API] Greška pri kreiranju sobe:", err);
+      res.status(500).json({ error: "Greška servera" });
+    }
   });
 
-  // REST: validate room exists
-  expressApp.get("/api/rooms/:roomId", (req, res) => {
-    const room = getRoom(req.params.roomId);
-    if (!room) return res.status(404).json({ error: "Room not found or expired" });
-    res.json({
-      roomId: room.id,
-      createdAt: room.createdAt,
-      expiresAt: room.expiresAt,
-      participantCount: room.participants.size,
-    });
+  // REST: provjeri sobu
+  expressApp.get("/api/rooms/:roomId", async (req, res) => {
+    try {
+      const room = await getRoom(req.params.roomId);
+      if (!room) return res.status(404).json({ error: "Soba nije pronađena ili je istekla" });
+      res.json({
+        roomId: room.id,
+        createdAt: room.createdAt,
+        expiresAt: room.expiresAt,
+        participantCount: room.participants || 0,
+      });
+    } catch (err) {
+      res.status(500).json({ error: "Greška servera" });
+    }
   });
 
   // Next.js handler
@@ -106,81 +138,89 @@ app.prepare().then(() => {
     },
   });
 
+  // Prati aktivne sudionike u memoriji (samo za Socket.io sesiju)
+  const roomParticipants = new Map();
+
   io.on("connection", (socket) => {
     let currentRoomId = null;
     let displayName = null;
 
     // ── Join room ────────────────────────────────────────────────────────────
-    socket.on("join-room", ({ roomId, name }, callback) => {
-      const room = getRoom(roomId);
-      if (!room) {
-        return callback?.({ error: "Room not found or expired" });
+    socket.on("join-room", async ({ roomId, name }, callback) => {
+      try {
+        const room = await getRoom(roomId);
+        if (!room) {
+          return callback?.({ error: "Soba nije pronađena ili je istekla" });
+        }
+
+        currentRoomId = roomId;
+        displayName = name || "Anonymous";
+
+        // Prati sudionike
+        if (!roomParticipants.has(roomId)) {
+          roomParticipants.set(roomId, new Set());
+        }
+        roomParticipants.get(roomId).add(socket.id);
+        const participantCount = roomParticipants.get(roomId).size;
+
+        socket.join(roomId);
+
+        callback?.({
+          success: true,
+          expiresAt: room.expiresAt,
+          participantCount,
+        });
+
+        socket.to(roomId).emit("user-joined", {
+          name: displayName,
+          participantCount,
+        });
+      } catch (err) {
+        callback?.({ error: "Greška servera" });
       }
-
-      currentRoomId = roomId;
-      displayName = name || "Anonymous";
-      room.participants.add(socket.id);
-
-      socket.join(roomId);
-
-      // Send room metadata to joiner
-      callback?.({
-        success: true,
-        expiresAt: room.expiresAt,
-        participantCount: room.participants.size,
-      });
-
-      // Notify others
-      socket.to(roomId).emit("user-joined", {
-        name: displayName,
-        participantCount: room.participants.size,
-      });
     });
 
-    // ── Send message (encrypted blob — server never decrypts) ────────────────
-    socket.on("send-message", (payload, callback) => {
-      if (!currentRoomId) return callback?.({ error: "Not in a room" });
-      if (isRateLimited(socket.id)) return callback?.({ error: "Rate limited" });
+    // ── Pošalji poruku ────────────────────────────────────────────────────────
+    socket.on("send-message", async (payload, callback) => {
+      if (!currentRoomId) return callback?.({ error: "Nisi u sobi" });
+      if (isRateLimited(socket.id)) return callback?.({ error: "Previše poruka" });
 
-      const room = getRoom(currentRoomId);
-      if (!room) return callback?.({ error: "Room expired" });
+      try {
+        const room = await getRoom(currentRoomId);
+        if (!room) return callback?.({ error: "Soba je istekla" });
 
-      // Validate payload has encrypted fields only
-      const { encryptedData, iv, selfDestructMs, messageId, replyTo } = payload;
-      if (!encryptedData || !iv || !messageId) {
-        return callback?.({ error: "Invalid message format" });
+        const { encryptedData, iv, selfDestructMs, messageId, replyTo } = payload;
+        if (!encryptedData || !iv || !messageId) {
+          return callback?.({ error: "Neispravan format poruke" });
+        }
+
+        const message = {
+          id: messageId,
+          encryptedData,
+          iv,
+          selfDestructMs: Math.min(selfDestructMs || 0, 24 * 60 * 60 * 1000),
+          senderId: socket.id,
+          senderName: displayName,
+          timestamp: Date.now(),
+          replyTo: replyTo || null,
+        };
+
+        await saveMessage(currentRoomId, message);
+        io.to(currentRoomId).emit("new-message", message);
+        callback?.({ success: true });
+      } catch (err) {
+        callback?.({ error: "Greška servera" });
       }
-
-      const message = {
-        id: messageId,
-        encryptedData,
-        iv,
-        selfDestructMs: Math.min(selfDestructMs || 0, 24 * 60 * 60 * 1000),
-        senderId: socket.id,
-        senderName: displayName,
-        timestamp: Date.now(),
-        replyTo: replyTo || null,
-      };
-
-      room.messages.push(message);
-      room.messageCount++;
-
-      // Relay to room (including sender for confirmation)
-      io.to(currentRoomId).emit("new-message", message);
-      callback?.({ success: true });
     });
 
-    // ── Delete message ────────────────────────────────────────────────────────
-    socket.on("delete-message", ({ messageId }) => {
+    // ── Briši poruku ──────────────────────────────────────────────────────────
+    socket.on("delete-message", async ({ messageId }) => {
       if (!currentRoomId) return;
-      const room = getRoom(currentRoomId);
-      if (!room) return;
-
-      room.messages = room.messages.filter((m) => m.id !== messageId);
+      await deleteMessage(currentRoomId, messageId);
       io.to(currentRoomId).emit("message-deleted", { messageId });
     });
 
-    // ── Typing indicator ─────────────────────────────────────────────────────
+    // ── Typing indikator ─────────────────────────────────────────────────────
     socket.on("typing", ({ isTyping }) => {
       if (!currentRoomId) return;
       socket.to(currentRoomId).emit("peer-typing", {
@@ -192,20 +232,28 @@ app.prepare().then(() => {
     // ── Disconnect ────────────────────────────────────────────────────────────
     socket.on("disconnect", () => {
       if (!currentRoomId) return;
-      const room = getRoom(currentRoomId);
-      if (room) {
-        room.participants.delete(socket.id);
+
+      if (roomParticipants.has(currentRoomId)) {
+        roomParticipants.get(currentRoomId).delete(socket.id);
+        const participantCount = roomParticipants.get(currentRoomId).size;
+
+        if (participantCount === 0) {
+          roomParticipants.delete(currentRoomId);
+        }
+
         io.to(currentRoomId).emit("user-left", {
           name: displayName,
-          participantCount: room.participants.size,
+          participantCount,
         });
       }
+
       rateLimits.delete(socket.id);
     });
   });
 
-  httpServer.listen(port, () => {
-    console.log(`\n🔐 Zerra is live → http://${hostname}:${port}`);
-    console.log(`   Mode: ${dev ? "development" : "production"}\n`);
+  httpServer.listen(port, hostname, () => {
+    console.log(`\n🔐 Zerra je live → http://${hostname}:${port}`);
+    console.log(`   Mode: ${dev ? "development" : "production"}`);
+    console.log(`   Redis: ${process.env.REDIS_URL ? "✅ Spojen" : "⚠️ Lokalni"}\n`);
   });
 });
