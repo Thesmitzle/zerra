@@ -10,8 +10,8 @@ import type { RoomExpiry } from "@/types";
 
 const EXPIRY_OPTIONS: { value: RoomExpiry; label: string; desc: string }[] = [
   { value: "1h", label: "1 hour", desc: "Quick sessions" },
-  { value: "24h", label: "24 hours", desc: "Day-long conversations" },
-  { value: "7d", label: "7 days", desc: "Extended projects" },
+  { value: "24h", label: "24 hours", desc: "Day-long" },
+  { value: "7d", label: "7 days", desc: "Extended" },
 ];
 
 export default function LandingPage() {
@@ -23,28 +23,17 @@ export default function LandingPage() {
   async function createRoom() {
     if (loading) return;
     setLoading(true);
-
     try {
-      // Generate E2E key client-side
       const key = await generateEncryptionKey();
       const keyBase64 = await exportKeyToBase64(key);
-
-      // Create room on server
       const res = await fetch("/api/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ expiry }),
       });
-
       if (!res.ok) throw new Error("Failed to create room");
       const { roomId } = await res.json();
-
-      // Store display name in sessionStorage
-      if (name.trim()) {
-        sessionStorage.setItem("zerra_name", name.trim());
-      }
-
-      // Navigate — key in fragment, never sent to server
+      if (name.trim()) sessionStorage.setItem("zerra_name", name.trim());
       router.push(`/room/${roomId}#key=${encodeURIComponent(keyBase64)}`);
     } catch (err) {
       console.error(err);
@@ -53,111 +42,87 @@ export default function LandingPage() {
   }
 
   return (
-    <main className="mesh-bg noise min-h-screen flex flex-col items-center justify-center px-4">
-      {/* Grid lines decoration */}
-      <div
-        className="fixed inset-0 pointer-events-none"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-        }}
-      />
+    <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px", position: "relative", overflow: "hidden", background: "#0B0B0F" }}>
 
-      <div className="relative z-10 w-full max-w-lg mx-auto">
+      {/* Žena kao pozadina */}
+      <div style={{ position: "fixed", inset: 0, zIndex: 0 }}>
+        <img
+          src="/zerra-mascot.png"
+          alt=""
+          style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 55%", filter: "brightness(0.25) saturate(0.8)", pointerEvents: "none" }}
+        />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, rgba(11,11,15,0.5) 0%, rgba(11,11,15,0.3) 40%, rgba(11,11,15,0.85) 80%, rgba(11,11,15,1) 100%)" }} />
+        <div style={{ position: "absolute", inset: 0, background: "radial-gradient(ellipse at 50% 50%, rgba(0,255,198,0.04) 0%, transparent 70%)" }} />
+      </div>
+
+      {/* Grid lines */}
+      <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px)", backgroundSize: "60px 60px", pointerEvents: "none" }} />
+
+      {/* Content */}
+      <div style={{ position: "relative", zIndex: 10, width: "100%", maxWidth: "400px" }}>
+
         {/* Logo */}
-        <div className="flex items-center gap-3 mb-16 justify-center">
-          <div className="w-9 h-9 rounded-xl bg-accent flex items-center justify-center shadow-glow">
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-              <path
-                d="M9 1.5L16.5 5.25V12.75L9 16.5L1.5 12.75V5.25L9 1.5Z"
-                stroke="#0B0B0F"
-                strokeWidth="1.5"
-                strokeLinejoin="round"
-              />
-              <circle cx="9" cy="9" r="2.5" fill="#0B0B0F" />
-            </svg>
-          </div>
-          <span
-            className="text-2xl font-bold tracking-tight text-text-primary"
-            style={{ fontFamily: "var(--font-syne)" }}
-          >
-            Zerra
-          </span>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "20px" }}>
+          <img src="/zerra-logo.png" alt="Zerra" style={{ height: "52px", objectFit: "contain" }} />
         </div>
 
         {/* Hero text */}
-        <div className="text-center mb-12">
-          <h1
-            className="text-5xl font-extrabold leading-tight mb-4"
-            style={{ fontFamily: "var(--font-syne)" }}
-          >
-            Chat without{" "}
-            <span className="glow-text">leaving traces</span>
+        <div style={{ textAlign: "center", marginBottom: "20px" }}>
+          <h1 style={{ fontSize: "28px", fontWeight: 800, lineHeight: 1.15, margin: "0 0 8px", letterSpacing: "-0.02em", fontFamily: "var(--font-syne)" }}>
+            <span style={{ color: "#E5E7EB" }}>Chat without</span>
+            <br />
+            <span style={{ color: "#00FFC6", textShadow: "0 0 30px rgba(0,255,198,0.4)" }}>leaving traces</span>
           </h1>
-          <p className="text-text-muted text-lg leading-relaxed max-w-md mx-auto">
-            End-to-end encrypted. Zero knowledge. Self-destructing messages.{" "}
-            <span className="text-text-primary">The server never sees your words.</span>
+          <p style={{ fontSize: "12px", color: "#9CA3AF", lineHeight: 1.6, margin: 0, fontFamily: "var(--font-outfit)" }}>
+            End-to-end encrypted. Zero knowledge.{" "}
+            <span style={{ color: "#E5E7EB" }}>The server never sees your words.</span>
           </p>
         </div>
 
-        {/* Create room card */}
-        <div className="glass rounded-2xl p-6 accent-border mb-6">
-          <p className="text-xs font-medium text-text-muted uppercase tracking-widest mb-4">
-            Create a private room
-          </p>
+        {/* Card */}
+        <div style={{ background: "rgba(18,18,26,0.85)", border: "1px solid rgba(0,255,198,0.15)", borderRadius: "16px", padding: "20px", backdropFilter: "blur(12px)", marginBottom: "16px" }}>
+          <p style={{ fontSize: "10px", fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.12em", margin: "0 0 12px" }}>Create a private room</p>
 
-          {/* Name input */}
-          <div className="mb-4">
-            <label className="block text-sm text-text-muted mb-2">Your name (optional)</label>
+          {/* Name */}
+          <div style={{ marginBottom: "12px" }}>
+            <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "6px" }}>Your name (optional)</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Anonymous"
               maxLength={24}
-              className="zerra-input w-full bg-surface-2 border border-border rounded-xl px-4 py-3 text-text-primary placeholder-text-muted text-sm transition-all duration-200"
-              style={{ fontFamily: "var(--font-outfit)" }}
+              style={{ width: "100%", background: "rgba(26,26,38,0.9)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", padding: "10px 14px", color: "#E5E7EB", fontSize: "13px", outline: "none", boxSizing: "border-box", fontFamily: "var(--font-outfit)" }}
             />
           </div>
 
-          {/* Expiry selector */}
-          <div className="mb-6">
-            <label className="block text-sm text-text-muted mb-2">Room expires after</label>
-            <div className="grid grid-cols-3 gap-2">
+          {/* Expiry */}
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ display: "block", fontSize: "11px", color: "#9CA3AF", marginBottom: "6px" }}>Room expires after</label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px" }}>
               {EXPIRY_OPTIONS.map((opt) => (
                 <button
                   key={opt.value}
                   onClick={() => setExpiry(opt.value)}
-                  className={`btn-press rounded-xl px-3 py-3 text-sm font-medium transition-all duration-150 text-center ${
-                    expiry === opt.value
-                      ? "bg-accent text-bg shadow-glow"
-                      : "bg-surface-2 text-text-muted hover:text-text-primary border border-border"
-                  }`}
+                  style={{ padding: "8px 4px", borderRadius: "10px", border: "1px solid", borderColor: expiry === opt.value ? "#00FFC6" : "rgba(255,255,255,0.06)", background: expiry === opt.value ? "#00FFC6" : "rgba(26,26,38,0.9)", color: expiry === opt.value ? "#0B0B0F" : "#9CA3AF", cursor: "pointer", textAlign: "center", transition: "all 0.15s", fontFamily: "var(--font-outfit)" }}
                 >
-                  <div className="font-semibold">{opt.label}</div>
-                  <div className="text-xs opacity-70 mt-0.5">{opt.desc}</div>
+                  <div style={{ fontSize: "12px", fontWeight: 600 }}>{opt.label}</div>
+                  <div style={{ fontSize: "9px", opacity: 0.7, marginTop: "1px" }}>{opt.desc}</div>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Create button */}
+          {/* Button */}
           <button
             onClick={createRoom}
             disabled={loading}
-            className="btn-press w-full bg-accent text-bg font-bold py-3.5 rounded-xl text-sm transition-all duration-200 hover:shadow-glow-strong disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            style={{ fontFamily: "var(--font-syne)" }}
+            style={{ width: "100%", padding: "12px", background: "#00FFC6", color: "#0B0B0F", fontSize: "13px", fontWeight: 800, border: "none", borderRadius: "12px", cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.6 : 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", boxShadow: "0 0 20px rgba(0,255,198,0.2)", fontFamily: "var(--font-syne)" }}
           >
-            {loading ? (
+            {loading ? "Generating key…" : (
               <>
-                <Spinner />
-                Generating key…
-              </>
-            ) : (
-              <>
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                  <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
                 Create Encrypted Room
               </>
@@ -165,52 +130,29 @@ export default function LandingPage() {
           </button>
         </div>
 
-        {/* Trust signals */}
-        <div className="grid grid-cols-3 gap-3 mb-12">
+        {/* Trust pills */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px", marginBottom: "16px" }}>
           {[
             { icon: "🔑", label: "AES-256-GCM", sub: "Encryption" },
             { icon: "👁️", label: "Zero knowledge", sub: "Server blind" },
             { icon: "💣", label: "Self-destruct", sub: "Auto-delete" },
           ].map((item) => (
-            <div
-              key={item.label}
-              className="glass rounded-xl p-3 text-center border border-border"
-            >
-              <div className="text-lg mb-1">{item.icon}</div>
-              <div className="text-xs font-semibold text-text-primary">{item.label}</div>
-              <div className="text-xs text-text-muted">{item.sub}</div>
+            <div key={item.label} style={{ background: "rgba(18,18,26,0.7)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "10px", padding: "8px 4px", textAlign: "center", backdropFilter: "blur(8px)" }}>
+              <div style={{ fontSize: "14px", marginBottom: "3px" }}>{item.icon}</div>
+              <div style={{ fontSize: "9px", fontWeight: 600, color: "#E5E7EB" }}>{item.label}</div>
+              <div style={{ fontSize: "8px", color: "#9CA3AF", marginTop: "1px" }}>{item.sub}</div>
             </div>
           ))}
         </div>
 
         {/* Footer */}
-        <div className="text-center text-xs text-text-muted">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent inline-block shadow-glow" />
+        <div style={{ textAlign: "center" }}>
+          <span style={{ fontSize: "10px", color: "#9CA3AF", opacity: 0.5, fontFamily: "var(--font-outfit)" }}>
+            <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#00FFC6", marginRight: "6px", verticalAlign: "middle", boxShadow: "0 0 6px rgba(0,255,198,0.8)" }} />
             Open source · No accounts · No logs
           </span>
         </div>
       </div>
     </main>
-  );
-}
-
-function Spinner() {
-  return (
-    <svg
-      className="animate-spin"
-      width="14"
-      height="14"
-      viewBox="0 0 14 14"
-      fill="none"
-    >
-      <circle cx="7" cy="7" r="5.5" stroke="currentColor" strokeOpacity="0.3" strokeWidth="2" />
-      <path
-        d="M7 1.5A5.5 5.5 0 0 1 12.5 7"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
   );
 }
