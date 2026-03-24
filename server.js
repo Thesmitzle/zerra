@@ -21,10 +21,9 @@ const handle = app.getRequestHandler();
 const rooms = new Map();
 
 const ROOM_EXPIRY_OPTIONS = {
+  "15m": 15 * 60 * 1000,
   "30m": 30 * 60 * 1000,
   "1h": 60 * 60 * 1000,
-  "24h": 24 * 60 * 60 * 1000,
-  "7d": 7 * 24 * 60 * 60 * 1000,
 };
 
 function createRoom(expiry = "24h") {

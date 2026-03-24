@@ -28,7 +28,7 @@ export const SELF_DESTRUCT_OPTIONS: SelfDestructOption[] = [
   { label: "1 hour", value: 60 * 60_000 },
 ];
 
-export type RoomExpiry = "30m" | "1h" | "24h";
+export type RoomExpiry = "15m" | "30m" | "1h";
 
 export interface RoomMeta {
   roomId: string;

@@ -9,14 +9,14 @@ import {
 import type { RoomExpiry } from "@/types";
 
 const EXPIRY_OPTIONS: { value: RoomExpiry; label: string; desc: string }[] = [
-  { value: "30m", label: "30 min", desc: "Quick sessions" },
+  { value: "15m", label: "15 min", desc: "Quick chat" },
+  { value: "30m", label: "30 min", desc: "Short session" },
   { value: "1h", label: "1 hour", desc: "Standard" },
-  { value: "24h", label: "24 hours", desc: "Day-long" },
 ];
 
 export default function LandingPage() {
   const router = useRouter();
-  const [expiry, setExpiry] = useState<RoomExpiry>("1h");
+  const [expiry, setExpiry] = useState<RoomExpiry>("30m");
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
 
