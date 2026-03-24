@@ -121,7 +121,13 @@ const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
   const expressApp = express();
-  expressApp.use(express.json());
+  expressApp.use((req, res, next) => {
+  if (req.path.startsWith("/api/") && !req.path.startsWith("/api/rooms")) {
+    next();
+  } else {
+    express.json()(req, res, next);
+  }
+});
 
   // REST: kreiraj sobu
   expressApp.post("/api/rooms", async (req, res) => {
