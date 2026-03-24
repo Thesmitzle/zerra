@@ -1,7 +1,7 @@
 export interface EncryptedMessage {
   id: string;
-  encryptedData: string; // base64 AES-GCM ciphertext
-  iv: string;            // base64 IV
+  encryptedData: string;
+  iv: string;
   selfDestructMs: number;
   senderId: string;
   senderName: string;
@@ -11,13 +11,13 @@ export interface EncryptedMessage {
 export interface DecryptedMessage extends EncryptedMessage {
   plaintext: string;
   isOwn: boolean;
-  destructAt?: number;   // timestamp when message should disappear
+  destructAt?: number;
   destroyed?: boolean;
 }
 
 export type SelfDestructOption = {
   label: string;
-  value: number; // ms, 0 = no self-destruct
+  value: number;
 };
 
 export const SELF_DESTRUCT_OPTIONS: SelfDestructOption[] = [
@@ -28,7 +28,7 @@ export const SELF_DESTRUCT_OPTIONS: SelfDestructOption[] = [
   { label: "1 hour", value: 60 * 60_000 },
 ];
 
-export type RoomExpiry = "1h" | "24h" | "7d";
+export type RoomExpiry = "30m" | "1h" | "24h";
 
 export interface RoomMeta {
   roomId: string;
