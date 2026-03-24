@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { DecryptedMessage } from "@/types";
 
 interface MessageBubbleProps {
@@ -26,6 +26,7 @@ function formatCountdown(ms: number): string {
 export function MessageBubble({ message, onDestroy }: MessageBubbleProps) {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [destroying, setDestroying] = useState(false);
+  const [copied, setCopied] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const destroyRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -56,22 +57,24 @@ export function MessageBubble({ message, onDestroy }: MessageBubbleProps) {
     };
   }, [message.destructAt, message.selfDestructMs, message.id, onDestroy]);
 
+  function handleCopy() {
+    navigator.clipboard.writeText(message.plaintext);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   if (message.destroyed) return null;
 
   const isUrgent = timeLeft !== null && timeLeft < 5000;
 
   return (
-    <div
-      className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-2 message-enter ${
-        destroying ? "message-destroy" : ""
-      }`}
-    >
+    <div className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-2 message-enter ${destroying ? "message-destroy" : ""}`}>
       <div className={`flex flex-col ${isOwn ? "items-end" : "items-start"} max-w-[75%]`}>
+
         {/* Sender name */}
-        
-          <span className="text-xs text-text-muted ml-1 mb-1 font-medium">
-            {isOwn ? "Ti" : message.senderName}
-          </span>
+        <span className="text-xs text-text-muted ml-1 mb-1 font-medium">
+          {isOwn ? "Ti" : message.senderName}
+        </span>
 
         <div className="relative group">
           {/* Bubble */}
@@ -80,77 +83,63 @@ export function MessageBubble({ message, onDestroy }: MessageBubbleProps) {
               isOwn
                 ? "bg-accent text-bg rounded-tr-sm shadow-glow"
                 : "bg-surface-2 text-text-primary border border-border rounded-tl-sm"
-            } ${isOwn ? "hover:shadow-glow-strong" : "hover:border-white/10"}`}
+            }`}
           >
-            {/* Message text */}
             <p className="whitespace-pre-wrap break-words" style={{ fontFamily: "var(--font-outfit)" }}>
               {message.plaintext}
             </p>
 
             {/* Footer row */}
-            <div
-              className={`flex items-center gap-2 mt-1.5 ${
-                isOwn ? "justify-end" : "justify-start"
-              }`}
-            >
-              {/* Timestamp */}
+            <div className={`flex items-center gap-2 mt-1.5 ${isOwn ? "justify-end" : "justify-start"}`}>
               <span
-                className={`text-[10px] ${
-                  isOwn ? "text-bg/60" : "text-text-muted"
-                }`}
+                className={`text-[10px] ${isOwn ? "text-bg/60" : "text-text-muted"}`}
                 style={{ fontFamily: "var(--font-dm-mono)" }}
               >
                 {formatTime(message.timestamp)}
               </span>
 
-              {/* Self-destruct countdown */}
               {timeLeft !== null && (
                 <span
-                  className={`flex items-center gap-1 text-[10px] font-medium ${
-                    isOwn ? "text-bg/70" : "text-text-muted"
-                  } ${isUrgent ? "countdown-urgent" : ""}`}
+                  className={`flex items-center gap-1 text-[10px] font-medium ${isOwn ? "text-bg/70" : "text-text-muted"} ${isUrgent ? "countdown-urgent" : ""}`}
                   style={{ fontFamily: "var(--font-dm-mono)" }}
                 >
                   <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
-                    <path
-                      d="M4.5 1.5A3 3 0 1 0 7.5 4.5"
-                      stroke="currentColor"
-                      strokeWidth="1.2"
-                      strokeLinecap="round"
-                    />
-                    <path
-                      d="M4.5 3V4.5L5.5 5.5"
-                      stroke="currentColor"
-                      strokeWidth="1.2"
-                      strokeLinecap="round"
-                    />
+                    <path d="M4.5 1.5A3 3 0 1 0 7.5 4.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+                    <path d="M4.5 3V4.5L5.5 5.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
                   </svg>
                   {formatCountdown(timeLeft)}
                 </span>
               )}
 
-              {/* Lock icon for own messages */}
               {isOwn && (
-                <svg
-                  width="9"
-                  height="9"
-                  viewBox="0 0 9 9"
-                  fill="none"
-                  className="opacity-50"
-                >
+                <svg width="9" height="9" viewBox="0 0 9 9" fill="none" className="opacity-50">
                   <rect x="1" y="4" width="7" height="4.5" rx="1" stroke="#0B0B0F" strokeWidth="1.2" />
-                  <path
-                    d="M2.5 4V3a2 2 0 0 1 4 0v1"
-                    stroke="#0B0B0F"
-                    strokeWidth="1.2"
-                    strokeLinecap="round"
-                  />
+                  <path d="M2.5 4V3a2 2 0 0 1 4 0v1" stroke="#0B0B0F" strokeWidth="1.2" strokeLinecap="round" />
                 </svg>
               )}
             </div>
           </div>
 
-          {/* Destroy indicator overlay */}
+          {/* Copy button — pojavljuje se na hover */}
+          <button
+            onClick={handleCopy}
+            className={`absolute ${isOwn ? "-left-8" : "-right-8"} top-2 opacity-0 group-hover:opacity-100 transition-all duration-150 w-6 h-6 rounded-lg flex items-center justify-center`}
+            style={{ background: "rgba(18,18,26,0.9)", border: "1px solid rgba(255,255,255,0.08)" }}
+            title="Kopiraj poruku"
+          >
+            {copied ? (
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M2 5l2 2 4-4" stroke="#00FFC6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            ) : (
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <rect x="3" y="3" width="6" height="6" rx="1" stroke="#9CA3AF" strokeWidth="1.2" />
+                <path d="M7 3V2a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v4a1 1 0 0 0 1 1h1" stroke="#9CA3AF" strokeWidth="1.2" strokeLinecap="round" />
+              </svg>
+            )}
+          </button>
+
+          {/* Destroy overlay */}
           {destroying && (
             <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-bg/80 backdrop-blur-sm">
               <span className="text-xs text-text-muted">💨 Destroyed</span>
@@ -162,7 +151,6 @@ export function MessageBubble({ message, onDestroy }: MessageBubbleProps) {
   );
 }
 
-// System message (join/leave/info)
 export function SystemMessage({ text }: { text: string }) {
   return (
     <div className="flex justify-center my-4 message-enter">
