@@ -146,19 +146,20 @@ app.prepare().then(() => {
       if (!room) return callback?.({ error: "Room expired" });
 
       // Validate payload has encrypted fields only
-      const { encryptedData, iv, selfDestructMs, messageId } = payload;
+      const { encryptedData, iv, selfDestructMs, messageId, replyTo } = payload;
       if (!encryptedData || !iv || !messageId) {
         return callback?.({ error: "Invalid message format" });
       }
 
       const message = {
         id: messageId,
-        encryptedData, // base64 — server cannot read
-        iv,            // base64 — server cannot read
+        encryptedData,
+        iv,
         selfDestructMs: Math.min(selfDestructMs || 0, 24 * 60 * 60 * 1000),
         senderId: socket.id,
         senderName: displayName,
         timestamp: Date.now(),
+        replyTo: replyTo || null,
       };
 
       room.messages.push(message);
