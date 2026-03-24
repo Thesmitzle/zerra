@@ -152,6 +152,8 @@ export default function LandingPage() {
               <circle cx="24" cy="21" r="2" fill="#00FFC6" />
             </svg>
             <span style={{ color: "#E5E7EB", fontWeight: 600 }}>Created by AlphaGe3k</span>
+            <span style={{ color: "#9CA3AF" }}>·</span>
+            <a href="/zerra-about.pdf" target="_blank" rel="noopener noreferrer" style={{ color: "#00FFC6", fontWeight: 600, textDecoration: "none", opacity: 1 }}>About</a>
           </div>
         </div>
       </div>
