@@ -14,37 +14,6 @@ const EXPIRY_OPTIONS: { value: RoomExpiry; label: string; desc: string }[] = [
   { value: "7d", label: "7 days", desc: "Extended" },
 ];
 
-function ZerraLogo({ small = false }: { small?: boolean }) {
-  const size = small ? 28 : 48;
-  const fontSize = small ? "16px" : "26px";
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: small ? "8px" : "12px" }}>
-      <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
-        <defs>
-          <linearGradient id="hexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#00FFC6" />
-            <stop offset="100%" stopColor="#00B894" />
-          </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="2" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-        <polygon points="24,2 42,12 42,36 24,46 6,36 6,12" fill="url(#hexGrad)" filter="url(#glow)" opacity="0.15" />
-        <polygon points="24,2 42,12 42,36 24,46 6,36 6,12" fill="none" stroke="url(#hexGrad)" strokeWidth="1.5" filter="url(#glow)" />
-        <polygon points="24,8 38,16 38,32 24,40 10,32 10,16" fill="none" stroke="url(#hexGrad)" strokeWidth="1" opacity="0.4" />
-        <circle cx="24" cy="21" r="6" fill="none" stroke="#00FFC6" strokeWidth="1.8" />
-        <rect x="21" y="24" width="6" height="7" rx="1" fill="#00FFC6" />
-        <circle cx="24" cy="21" r="2" fill="#00FFC6" />
-      </svg>
-      <span style={{ fontSize, fontWeight: 800, color: "#E5E7EB", letterSpacing: "-0.02em", fontFamily: "var(--font-syne)" }}>Zerra</span>
-    </div>
-  );
-}
-
 export default function LandingPage() {
   const router = useRouter();
   const [expiry, setExpiry] = useState<RoomExpiry>("24h");
@@ -104,10 +73,12 @@ export default function LandingPage() {
         {/* Card */}
         <div style={{ background: "rgba(18,18,26,0.85)", border: "1px solid rgba(0,255,198,0.15)", borderRadius: "16px", padding: "20px", backdropFilter: "blur(12px)", marginBottom: "16px" }}>
 
-          {/* Logo + naslov */}
-          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
-            <ZerraLogo small />
-            <p style={{ fontSize: "10px", fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.12em", margin: 0 }}>Create a private room</p>
+          {/* Naslov + logo ispod */}
+          <p style={{ fontSize: "10px", fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.12em", margin: "0 0 10px" }}>Create a private room</p>
+
+          {/* Logo centriran ispod naslova */}
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px", paddingBottom: "16px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <img src="/zerra-logo.png" alt="Zerra" style={{ height: "32px", objectFit: "contain" }} />
           </div>
 
           <div style={{ marginBottom: "12px" }}>
