@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   generateEncryptionKey,
@@ -19,6 +19,22 @@ export default function LandingPage() {
   const [expiry, setExpiry] = useState<RoomExpiry>("30m");
   const [loading, setLoading] = useState(false);
   const [name, setName] = useState("");
+  const [muted, setMuted] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = 0.12;
+      audioRef.current.play().catch(() => {});
+    }
+  }, []);
+
+  function toggleMute() {
+    if (audioRef.current) {
+      audioRef.current.muted = !audioRef.current.muted;
+      setMuted((prev) => !prev);
+    }
+  }
 
   async function createRoom() {
     if (loading) return;
@@ -43,6 +59,30 @@ export default function LandingPage() {
 
   return (
     <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px", position: "relative", overflow: "hidden", background: "#0B0B0F" }}>
+
+      {/* Audio */}
+      <audio ref={audioRef} src="/ambient.mp3" loop preload="auto" />
+
+      {/* Mute gumb */}
+      <button
+        onClick={toggleMute}
+        title={muted ? "Unmute" : "Mute"}
+        style={{ position: "fixed", bottom: "20px", right: "20px", zIndex: 50, width: "36px", height: "36px", borderRadius: "50%", background: "rgba(18,18,26,0.9)", border: "1px solid rgba(0,255,198,0.2)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}
+      >
+        {muted ? (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M11 5L6 9H2v6h4l5 4V5z" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <line x1="23" y1="9" x2="17" y2="15" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round"/>
+            <line x1="17" y1="9" x2="23" y2="15" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        ) : (
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            <path d="M11 5L6 9H2v6h4l5 4V5z" stroke="#00FFC6" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07" stroke="#00FFC6" strokeWidth="1.5" strokeLinecap="round"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14" stroke="#00FFC6" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+        )}
+      </button>
 
       {/* Pozadina — žena */}
       <div style={{ position: "fixed", inset: 0, zIndex: 0 }}>
