@@ -73,14 +73,13 @@ async function saveMessage(roomId, message) {
     ttl,
     JSON.stringify(message)
   );
-  await redis.expire(`room:${roomId}`, ttl);
 }
 
 async function deleteMessage(roomId, messageId) {
   await redis.del(`msg:${roomId}:${messageId}`);
 }
 
-// ── Rate limiter ──────────────────────────────────────────────────────────────
+// ── Rate limiter — poruke (1/sec po socketu) ──────────────────────────────────
 const rateLimits = new Map();
 function isRateLimited(socketId) {
   const now = Date.now();
@@ -89,6 +88,32 @@ function isRateLimited(socketId) {
   rateLimits.set(socketId, now);
   return false;
 }
+
+// ── Rate limiter — kreiranje soba (5 po IP-u na sat) ─────────────────────────
+const roomCreationLimits = new Map();
+function isRoomCreationLimited(ip) {
+  const now = Date.now();
+  const hour = 60 * 60 * 1000;
+  if (!roomCreationLimits.has(ip)) {
+    roomCreationLimits.set(ip, []);
+  }
+  const timestamps = roomCreationLimits.get(ip).filter(t => now - t < hour);
+  if (timestamps.length >= 5) return true;
+  timestamps.push(now);
+  roomCreationLimits.set(ip, timestamps);
+  return false;
+}
+
+// Čisti stare IP zapise svakih sat vremena
+setInterval(() => {
+  const now = Date.now();
+  const hour = 60 * 60 * 1000;
+  for (const [ip, timestamps] of roomCreationLimits.entries()) {
+    const fresh = timestamps.filter(t => now - t < hour);
+    if (fresh.length === 0) roomCreationLimits.delete(ip);
+    else roomCreationLimits.set(ip, fresh);
+  }
+}, 60 * 60 * 1000);
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 const app = next({ dev, hostname, port });
@@ -101,6 +126,10 @@ app.prepare().then(() => {
   // REST: kreiraj sobu
   expressApp.post("/api/rooms", async (req, res) => {
     try {
+      const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress || "unknown";
+      if (isRoomCreationLimited(ip)) {
+        return res.status(429).json({ error: "Previše soba — pokušaj za sat vremena" });
+      }
       const { expiry } = req.body;
       const roomId = await createRoom(expiry);
       res.json({ roomId });
@@ -138,14 +167,14 @@ app.prepare().then(() => {
     },
   });
 
-  // Prati aktivne sudionike u memoriji (samo za Socket.io sesiju)
+  // Prati aktivne sudionike u memoriji
   const roomParticipants = new Map();
 
   io.on("connection", (socket) => {
     let currentRoomId = null;
     let displayName = null;
 
-    // ── Join room ────────────────────────────────────────────────────────────
+    // ── Join room ─────────────────────────────────────────────────────────────
     socket.on("join-room", async ({ roomId, name }, callback) => {
       try {
         const room = await getRoom(roomId);
@@ -156,7 +185,6 @@ app.prepare().then(() => {
         currentRoomId = roomId;
         displayName = name || "Anonymous";
 
-        // Prati sudionike
         if (!roomParticipants.has(roomId)) {
           roomParticipants.set(roomId, new Set());
         }
@@ -220,7 +248,7 @@ app.prepare().then(() => {
       io.to(currentRoomId).emit("message-deleted", { messageId });
     });
 
-    // ── Typing indikator ─────────────────────────────────────────────────────
+    // ── Typing indikator ──────────────────────────────────────────────────────
     socket.on("typing", ({ isTyping }) => {
       if (!currentRoomId) return;
       socket.to(currentRoomId).emit("peer-typing", {
