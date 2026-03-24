@@ -14,6 +14,102 @@ const EXPIRY_OPTIONS: { value: RoomExpiry; label: string; desc: string }[] = [
   { value: "1h", label: "1 hour", desc: "Standard" },
 ];
 
+const PACKAGES = [
+  { name: "Trial", duration: "7 days", price: "2€", btc: "~0.000020 BTC", popular: false },
+  { name: "Monthly", duration: "1 month", price: "7€", btc: "~0.000070 BTC", popular: true },
+  { name: "Quarterly", duration: "3 months", price: "15€", btc: "~0.000150 BTC", popular: false },
+];
+
+const BTC_ADDRESS = "bc1qwx9mh5mncvawx6v6veuqvfvrehx3eu8p8v3kau";
+
+function PaymentModal({ onClose }: { onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+  const [selectedPkg, setSelectedPkg] = useState(1);
+
+  function copyAddress() {
+    navigator.clipboard.writeText(BTC_ADDRESS);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: "fixed", inset: 0, zIndex: 100, background: "rgba(11,11,15,0.92)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{ background: "rgba(18,18,26,0.98)", border: "1px solid rgba(0,255,198,0.2)", borderRadius: "20px", padding: "24px", width: "100%", maxWidth: "380px", maxHeight: "90vh", overflowY: "auto" }}
+      >
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "20px" }}>
+          <div>
+            <p style={{ fontSize: "10px", color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.12em", margin: "0 0 4px" }}>Get Access</p>
+            <h2 style={{ fontSize: "18px", fontWeight: 800, color: "#E5E7EB", margin: 0, fontFamily: "var(--font-syne)" }}>Choose a Plan</h2>
+          </div>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "8px", width: "32px", height: "32px", cursor: "pointer", color: "#9CA3AF", fontSize: "16px", display: "flex", alignItems: "center", justifyContent: "center" }}>✕</button>
+        </div>
+
+        {/* Packages */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "20px" }}>
+          {PACKAGES.map((pkg, i) => (
+            <div
+              key={pkg.name}
+              onClick={() => setSelectedPkg(i)}
+              style={{ background: selectedPkg === i ? "rgba(0,255,198,0.08)" : "rgba(26,26,38,0.9)", border: `1px solid ${selectedPkg === i ? "rgba(0,255,198,0.4)" : "rgba(255,255,255,0.06)"}`, borderRadius: "12px", padding: "12px 14px", cursor: "pointer", position: "relative", transition: "all 0.15s" }}
+            >
+              {pkg.popular && (
+                <span style={{ position: "absolute", top: "-10px", right: "12px", background: "#00FFC6", color: "#0B0B0F", fontSize: "9px", fontWeight: 800, padding: "2px 8px", borderRadius: "20px", letterSpacing: "0.05em" }}>POPULAR</span>
+              )}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div>
+                  <p style={{ fontSize: "13px", fontWeight: 700, color: selectedPkg === i ? "#00FFC6" : "#E5E7EB", margin: "0 0 2px" }}>{pkg.name}</p>
+                  <p style={{ fontSize: "11px", color: "#9CA3AF", margin: 0 }}>{pkg.duration}</p>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <p style={{ fontSize: "16px", fontWeight: 800, color: selectedPkg === i ? "#00FFC6" : "#E5E7EB", margin: "0 0 2px" }}>{pkg.price}</p>
+                  <p style={{ fontSize: "10px", color: "#9CA3AF", margin: 0, fontFamily: "monospace" }}>{pkg.btc}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* BTC Address */}
+        <div style={{ background: "rgba(26,26,38,0.9)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: "12px", padding: "14px", marginBottom: "16px" }}>
+          <p style={{ fontSize: "10px", color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 8px" }}>₿ Send Bitcoin to</p>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <p style={{ fontSize: "10px", color: "#00FFC6", fontFamily: "monospace", margin: 0, flex: 1, wordBreak: "break-all", lineHeight: 1.5 }}>{BTC_ADDRESS}</p>
+            <button
+              onClick={copyAddress}
+              style={{ background: copied ? "rgba(0,255,198,0.15)" : "rgba(255,255,255,0.05)", border: `1px solid ${copied ? "rgba(0,255,198,0.4)" : "rgba(255,255,255,0.1)"}`, borderRadius: "8px", padding: "6px 10px", cursor: "pointer", fontSize: "11px", color: copied ? "#00FFC6" : "#9CA3AF", whiteSpace: "nowrap", transition: "all 0.15s" }}
+            >
+              {copied ? "✓ Copied" : "Copy"}
+            </button>
+          </div>
+        </div>
+
+        {/* Instructions */}
+        <div style={{ background: "rgba(0,255,198,0.04)", border: "1px solid rgba(0,255,198,0.1)", borderRadius: "12px", padding: "14px", marginBottom: "16px" }}>
+          <p style={{ fontSize: "11px", color: "#9CA3AF", margin: 0, lineHeight: 1.7 }}>
+            1. Send <strong style={{ color: "#00FFC6" }}>{PACKAGES[selectedPkg].price}</strong> worth of BTC to the address above<br />
+            2. Email your payment screenshot to:<br />
+            <strong style={{ color: "#E5E7EB" }}>alphage3k@gmail.com</strong><br />
+            3. Receive your access code within <strong style={{ color: "#00FFC6" }}>24 hours</strong>
+          </p>
+        </div>
+
+        <button
+          onClick={onClose}
+          style={{ width: "100%", padding: "12px", background: "rgba(255,255,255,0.04)", color: "#9CA3AF", fontSize: "13px", fontWeight: 600, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", cursor: "pointer" }}
+        >
+          I already have a code
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function LandingPage() {
   const router = useRouter();
   const [expiry, setExpiry] = useState<RoomExpiry>("30m");
@@ -24,10 +120,10 @@ export default function LandingPage() {
   const [codeError, setCodeError] = useState(false);
   const [codeVerified, setCodeVerified] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [showPayment, setShowPayment] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    // Check if already verified in session
     if (sessionStorage.getItem("zerra_verified") === "true") {
       setCodeVerified(true);
     }
@@ -90,6 +186,8 @@ export default function LandingPage() {
 
   return (
     <main style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px", position: "relative", overflow: "hidden", background: "#0B0B0F" }}>
+
+      {showPayment && <PaymentModal onClose={() => setShowPayment(false)} />}
 
       {/* Audio */}
       <audio ref={audioRef} src="/ambient.mp3" loop preload="auto" />
@@ -156,7 +254,7 @@ export default function LandingPage() {
                 value={accessCode}
                 onChange={(e) => { setAccessCode(e.target.value); setCodeError(false); }}
                 onKeyDown={(e) => e.key === "Enter" && verifyCode()}
-                placeholder="XXXX-XXXX-XXXX"
+                placeholder="Enter access code"
                 maxLength={20}
                 autoFocus
                 style={{ width: "100%", background: "rgba(26,26,38,0.9)", border: `1px solid ${codeError ? "#EF4444" : "rgba(255,255,255,0.06)"}`, borderRadius: "10px", padding: "10px 14px", color: "#E5E7EB", fontSize: "14px", outline: "none", boxSizing: "border-box", fontFamily: "monospace", letterSpacing: "0.1em", textAlign: "center" }}
@@ -170,13 +268,18 @@ export default function LandingPage() {
             <button
               onClick={verifyCode}
               disabled={verifying || !accessCode.trim()}
-              style={{ width: "100%", padding: "12px", background: "#00FFC6", color: "#0B0B0F", fontSize: "13px", fontWeight: 800, border: "none", borderRadius: "12px", cursor: verifying ? "not-allowed" : "pointer", opacity: verifying || !accessCode.trim() ? 0.6 : 1, fontFamily: "var(--font-syne)" }}
+              style={{ width: "100%", padding: "12px", background: "#00FFC6", color: "#0B0B0F", fontSize: "13px", fontWeight: 800, border: "none", borderRadius: "12px", cursor: verifying ? "not-allowed" : "pointer", opacity: verifying || !accessCode.trim() ? 0.6 : 1, fontFamily: "var(--font-syne)", marginBottom: "10px" }}
             >
               {verifying ? "Verifying…" : "Enter Zerra"}
             </button>
+            <button
+              onClick={() => setShowPayment(true)}
+              style={{ width: "100%", padding: "10px", background: "transparent", color: "#9CA3AF", fontSize: "12px", fontWeight: 600, border: "1px solid rgba(255,255,255,0.08)", borderRadius: "12px", cursor: "pointer", fontFamily: "var(--font-outfit)" }}
+            >
+              Don't have a code? <span style={{ color: "#00FFC6" }}>Get Access →</span>
+            </button>
           </div>
         ) : (
-          /* Main card — prikaže se nakon verifikacije */
           <div style={{ background: "rgba(18,18,26,0.85)", border: "1px solid rgba(0,255,198,0.15)", borderRadius: "16px", padding: "20px", backdropFilter: "blur(12px)", marginBottom: "16px" }}>
             <p style={{ fontSize: "10px", fontWeight: 600, color: "#9CA3AF", textTransform: "uppercase", letterSpacing: "0.12em", margin: "0 0 16px" }}>Create a private room</p>
 
