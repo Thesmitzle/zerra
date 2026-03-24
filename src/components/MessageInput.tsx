@@ -18,6 +18,13 @@ interface MessageInputProps {
   onCancelReply?: () => void;
 }
 
+const TRENDING_EMOJIS = [
+  "😂", "❤️", "🔥", "👍", "😍", "🥺", "😭", "✨",
+  "🙏", "💀", "😎", "🤣", "💯", "🫡", "👀", "😅",
+  "🤝", "💪", "🎉", "😱", "🫶", "🤯", "💬", "🔐",
+  "👻", "🕵️", "🤫", "🫠", "💣", "⚡", "🌙", "🦋",
+];
+
 export function MessageInput({
   onSend,
   onTyping,
@@ -29,6 +36,7 @@ export function MessageInput({
   const [text, setText] = useState("");
   const [selfDestructMs, setSelfDestructMs] = useState(0);
   const [showTimerMenu, setShowTimerMenu] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const typingTimeout = useRef<NodeJS.Timeout | null>(null);
   const isTypingRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -36,6 +44,18 @@ export function MessageInput({
   useEffect(() => {
     if (replyTo) textareaRef.current?.focus();
   }, [replyTo]);
+
+  // Zatvori picker kad klikneš van
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.closest("#emoji-picker") && !target.closest("#emoji-btn")) {
+        setShowEmojiPicker(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   function handleTextChange(val: string) {
     setText(val);
@@ -54,6 +74,19 @@ export function MessageInput({
     }
   }
 
+  function insertEmoji(emoji: string) {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const newText = text.slice(0, start) + emoji + text.slice(end);
+    setText(newText);
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+    }, 0);
+  }
+
   function handleSend() {
     const trimmed = text.trim();
     if (!trimmed || disabled) return;
@@ -70,8 +103,9 @@ export function MessageInput({
       e.preventDefault();
       handleSend();
     }
-    if (e.key === "Escape" && replyTo) {
-      onCancelReply?.();
+    if (e.key === "Escape") {
+      if (replyTo) onCancelReply?.();
+      setShowEmojiPicker(false);
     }
   }
 
@@ -122,10 +156,48 @@ export function MessageInput({
 
         {/* Input row */}
         <div className="flex items-end gap-2">
+
+          {/* Emoji button */}
+          <div className="relative flex-shrink-0">
+            <button
+              id="emoji-btn"
+              onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowTimerMenu(false); }}
+              className={`btn-press w-10 h-10 flex items-center justify-center rounded-xl border transition-all duration-150 ${showEmojiPicker ? "border-accent/40 bg-accent/10 text-accent" : "border-border bg-surface-2 text-text-muted hover:text-text-primary"}`}
+              title="Emoji"
+            >
+              <span style={{ fontSize: "16px" }}>😊</span>
+            </button>
+
+            {/* Emoji picker popup */}
+            {showEmojiPicker && (
+              <div
+                id="emoji-picker"
+                className="absolute bottom-12 left-0 glass border border-border rounded-2xl p-3 z-30 shadow-xl"
+                style={{ width: "220px" }}
+              >
+                <p className="text-xs text-text-muted mb-2 px-1" style={{ fontFamily: "var(--font-outfit)" }}>
+                  Trending
+                </p>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: "2px" }}>
+                  {TRENDING_EMOJIS.map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => { insertEmoji(emoji); setShowEmojiPicker(false); }}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-surface-2 transition-colors"
+                      style={{ fontSize: "16px" }}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Timer button */}
           <div className="relative flex-shrink-0">
             <button
-              onClick={() => setShowTimerMenu(!showTimerMenu)}
+              onClick={() => { setShowTimerMenu(!showTimerMenu); setShowEmojiPicker(false); }}
               className={`btn-press w-10 h-10 flex items-center justify-center rounded-xl border transition-all duration-150 ${selfDestructMs > 0 ? "border-red-500/40 bg-red-500/10 text-red-400" : "border-border bg-surface-2 text-text-muted hover:text-text-primary"}`}
               title="Self-destruct timer"
             >

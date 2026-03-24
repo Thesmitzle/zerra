@@ -34,34 +34,3 @@ export function disconnectSocket() {
     socket = null;
   }
 }
-```
-
-Spremi **Ctrl+S**, zatvori.
-
-Sad otvori:
-```
-notepad src\components\ChatRoom.tsx
-```
-
-Pronađi ovu liniju:
-```
-{!connected && keyLoaded && (
-        <div className="text-center py-2 text-xs text-yellow-400 bg-yellow-400/10 border-b border-yellow-400/20">
-          ⚠ Reconnecting…
-        </div>
-      )}
-```
-
-Zamijeni s:
-```
-{!connected && keyLoaded && (
-        <div className="text-center py-3 text-xs bg-surface-2 border-b border-border">
-          <p className="text-text-muted mb-2">⚠ Veza prekinuta</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="btn-press bg-accent text-bg text-xs font-bold px-4 py-1.5 rounded-lg hover:shadow-glow transition-all"
-          >
-            Reconnect
-          </button>
-        </div>
-      )}
