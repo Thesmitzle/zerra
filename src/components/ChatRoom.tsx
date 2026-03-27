@@ -7,6 +7,8 @@ import {
   getKeyFromFragment,
   encryptMessage,
   decryptMessage,
+  encryptFile,
+  decryptFile,
 } from "@/lib/crypto";
 import { getSocket } from "@/lib/socketClient";
 import { TopBar } from "./TopBar";
@@ -24,7 +26,19 @@ import type {
 
 type SystemEntry = { type: "system"; id: string; text: string };
 type MessageEntry = DecryptedMessage & { type: "message"; replyTo?: ReplyTo };
-type ChatEntry = MessageEntry | SystemEntry;
+type FileEntry = {
+  type: "file";
+  id: string;
+  fileId: string;
+  fileName: string;
+  fileType: string;
+  size: number;
+  senderId: string;
+  senderName: string;
+  timestamp: number;
+  isOwn: boolean;
+};
+type ChatEntry = MessageEntry | SystemEntry | FileEntry;
 
 interface ChatRoomProps {
   roomId: string;
@@ -74,6 +88,85 @@ function sendNotification(senderName: string, text: string) {
   }
 }
 
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getFileIcon(fileType: string): string {
+  if (fileType.startsWith("image/")) return "🖼️";
+  if (fileType.includes("pdf")) return "📄";
+  if (fileType.includes("word") || fileType.includes("document")) return "📝";
+  if (fileType.includes("sheet") || fileType.includes("excel")) return "📊";
+  if (fileType.includes("zip") || fileType.includes("rar")) return "🗜️";
+  return "📎";
+}
+
+function FileBubble({ entry, cryptoKey, isOwn }: { entry: FileEntry; cryptoKey: CryptoKey; isOwn: boolean }) {
+  const [downloading, setDownloading] = useState(false);
+
+  async function handleDownload() {
+    if (downloading) return;
+    setDownloading(true);
+    try {
+      const res = await fetch(`/api/files/${entry.fileId}`);
+      if (!res.ok) throw new Error("File not found");
+      const data = await res.json();
+
+      // Dekriptiraj
+      const encryptedBytes = Uint8Array.from(atob(data.data), c => c.charCodeAt(0));
+      const decryptedBuffer = await decryptFile(encryptedBytes.buffer, data.iv, cryptoKey);
+
+      // Download
+      const blob = new Blob([decryptedBuffer], { type: data.fileType });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = data.fileName;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert("Failed to download file. It may have expired.");
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  return (
+    <div className={`flex ${isOwn ? "justify-end" : "justify-start"} mb-3`}>
+      <div className={`max-w-xs rounded-2xl border px-4 py-3 ${isOwn ? "bg-accent/10 border-accent/30" : "bg-surface-2 border-border"}`}>
+        {!isOwn && <p className="text-xs font-semibold text-accent mb-2">{entry.senderName}</p>}
+        <div className="flex items-center gap-3">
+          <span style={{ fontSize: "24px" }}>{getFileIcon(entry.fileType)}</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-text-primary truncate">{entry.fileName}</p>
+            <p className="text-xs text-text-muted">{formatFileSize(entry.size)}</p>
+          </div>
+          <button
+            onClick={handleDownload}
+            disabled={downloading}
+            className="btn-press flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-accent text-bg hover:shadow-glow transition-all disabled:opacity-50"
+          >
+            {downloading ? (
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="animate-spin">
+                <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" strokeDasharray="20" strokeDashoffset="10"/>
+              </svg>
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M7 2v7M4 6l3 3 3-3M2 11h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+          </button>
+        </div>
+        <p className="text-xs text-text-muted/50 mt-2 text-right">
+          {new Date(entry.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} 🔒
+        </p>
+      </div>
+    </div>
+  );
+}
+
 function ErrorState({ message }: { message: string }) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-center p-4">
@@ -105,6 +198,7 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [typing, setTyping] = useState<TypingState | null>(null);
   const [replyTo, setReplyTo] = useState<ReplyTo | null>(null);
+  const [uploading, setUploading] = useState(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const hasJoined = useRef(false);
@@ -153,6 +247,14 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
     socket.on("message-deleted", ({ messageId }: { messageId: string }) => {
       setEntries((prev) => prev.map((e) => e.type === "message" && e.id === messageId ? { ...e, destroyed: true } : e));
     });
+    socket.on("new-file", (msg: any) => {
+      const isOwn = msg.senderId === socket.id;
+      setEntries((prev) => [...prev, { ...msg, type: "file" as const, isOwn }]);
+      if (!isOwn) {
+        playChessSound();
+        sendNotification(msg.senderName, `📎 ${msg.fileName}`);
+      }
+    });
     socket.on("user-joined", ({ name, participantCount }: any) => {
       addSystem(`${name} joined the room`);
       setRoomMeta((prev) => prev ? { ...prev, participantCount } : null);
@@ -172,7 +274,8 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
     });
     return () => {
       socket.off("connect"); socket.off("disconnect"); socket.off("new-message");
-      socket.off("message-deleted"); socket.off("user-joined"); socket.off("user-left"); socket.off("peer-typing");
+      socket.off("message-deleted"); socket.off("new-file");
+      socket.off("user-joined"); socket.off("user-left"); socket.off("peer-typing");
     };
   }, [keyLoaded, cryptoKey, addMessage, addSystem]);
 
@@ -197,6 +300,47 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
       replyTo: reply || null,
     });
     setReplyTo(null);
+  }
+
+  async function handleSendFile(file: File) {
+    if (!cryptoKey || !displayName || !roomMeta) return;
+    setUploading(true);
+    try {
+      // Enkriptiraj fajl u browseru
+      const { encryptedData, iv } = await encryptFile(file, cryptoKey);
+
+      // Pripremi FormData s enkriptiranim blobom
+      const formData = new FormData();
+      const encryptedBlob = new Blob([encryptedData], { type: "application/octet-stream" });
+      formData.append("file", encryptedBlob, file.name);
+      formData.append("roomId", roomMeta.roomId);
+      formData.append("fileName", file.name);
+      formData.append("fileType", file.type || "application/octet-stream");
+      formData.append("iv", iv);
+
+      // Upload na server
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) throw new Error("Upload failed");
+      const { fileId } = await res.json();
+
+      // Obavijesti ostale korisnike
+      getSocket().emit("share-file", {
+        fileId,
+        fileName: file.name,
+        fileType: file.type || "application/octet-stream",
+        size: file.size,
+        messageId: uuidv4(),
+      });
+    } catch (err) {
+      alert("Failed to upload file. Please try again.");
+      console.error(err);
+    } finally {
+      setUploading(false);
+    }
   }
 
   function handleTyping(isTyping: boolean) {
@@ -242,18 +386,27 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
         </div>
       )}
 
+      {uploading && (
+        <div style={{ textAlign: "center", padding: "8px", fontSize: "12px", background: "rgba(0,255,198,0.1)", borderBottom: "1px solid rgba(0,255,198,0.2)", color: "#00FFC6" }}>
+          🔐 Encrypting and uploading file…
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto px-4 py-6" id="chat-messages">
         <div className="max-w-3xl mx-auto">
           {entries.length === 0 && (
             <div className="text-center text-text-muted text-sm py-16">
               <div className="text-3xl mb-3">🔐</div>
               <p className="font-medium text-text-primary mb-1">Room is ready</p>
-              <p>Messages are encrypted before leaving your device.</p>
+              <p>Messages and files are encrypted before leaving your device.</p>
             </div>
           )}
 
           {entries.map((entry) => {
             if (entry.type === "system") return <SystemMessage key={entry.id} text={entry.text} />;
+            if (entry.type === "file") return (
+              <FileBubble key={entry.id} entry={entry} cryptoKey={cryptoKey!} isOwn={entry.isOwn} />
+            );
             if (entry.destroyed) return null;
             return (
               <MessageBubble
@@ -285,6 +438,7 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
 
       <MessageInput
         onSend={handleSend}
+        onSendFile={handleSendFile}
         onTyping={handleTyping}
         disabled={!connected || !keyLoaded}
         placeholder={connected ? "Type a message…" : "Connecting…"}

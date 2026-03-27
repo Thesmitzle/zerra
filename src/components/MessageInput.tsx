@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { SELF_DESTRUCT_OPTIONS } from "@/types";
+import { encryptFile } from "@/lib/crypto";
 
 interface ReplyTo {
   id: string;
@@ -11,6 +12,7 @@ interface ReplyTo {
 
 interface MessageInputProps {
   onSend: (text: string, selfDestructMs: number, replyTo?: ReplyTo) => void;
+  onSendFile: (file: File) => void;
   onTyping: (isTyping: boolean) => void;
   disabled?: boolean;
   placeholder?: string;
@@ -26,12 +28,8 @@ const TRENDING_EMOJIS = [
 ];
 
 export function MessageInput({
-  onSend,
-  onTyping,
-  disabled = false,
-  placeholder = "Type a message…",
-  replyTo,
-  onCancelReply,
+  onSend, onSendFile, onTyping, disabled = false,
+  placeholder = "Type a message…", replyTo, onCancelReply,
 }: MessageInputProps) {
   const [text, setText] = useState("");
   const [selfDestructMs, setSelfDestructMs] = useState(0);
@@ -40,12 +38,12 @@ export function MessageInput({
   const typingTimeout = useRef<NodeJS.Timeout | null>(null);
   const isTypingRef = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (replyTo) textareaRef.current?.focus();
   }, [replyTo]);
 
-  // Zatvori picker kad klikneš van
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       const target = e.target as HTMLElement;
@@ -109,6 +107,17 @@ export function MessageInput({
     }
   }
 
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert("File too large. Maximum size is 5MB.");
+      return;
+    }
+    onSendFile(file);
+    e.target.value = "";
+  }
+
   useEffect(() => {
     return () => { if (typingTimeout.current) clearTimeout(typingTimeout.current); };
   }, []);
@@ -118,6 +127,15 @@ export function MessageInput({
   return (
     <div className="glass border-t border-border px-4 py-3 sticky bottom-0 z-20">
       <div className="max-w-3xl mx-auto">
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          onChange={handleFileChange}
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.png,.jpg,.jpeg,.gif,.webp"
+          style={{ display: "none" }}
+        />
 
         {/* Reply preview */}
         {replyTo && (
@@ -157,6 +175,20 @@ export function MessageInput({
         {/* Input row */}
         <div className="flex items-end gap-2">
 
+          {/* File attach button */}
+          <div className="relative flex-shrink-0">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={disabled}
+              className="btn-press w-10 h-10 flex items-center justify-center rounded-xl border border-border bg-surface-2 text-text-muted hover:text-accent hover:border-accent/30 transition-all duration-150 disabled:opacity-30"
+              title="Attach file"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M13.5 7.5L7.5 13.5C6.1 14.9 3.9 14.9 2.5 13.5C1.1 12.1 1.1 9.9 2.5 8.5L8.5 2.5C9.4 1.6 10.9 1.6 11.8 2.5C12.7 3.4 12.7 4.9 11.8 5.8L5.8 11.8C5.4 12.2 4.6 12.2 4.2 11.8C3.8 11.4 3.8 10.6 4.2 10.2L9.5 4.9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+              </svg>
+            </button>
+          </div>
+
           {/* Emoji button */}
           <div className="relative flex-shrink-0">
             <button
@@ -168,7 +200,6 @@ export function MessageInput({
               <span style={{ fontSize: "16px" }}>😊</span>
             </button>
 
-            {/* Emoji picker popup */}
             {showEmojiPicker && (
               <div
                 id="emoji-picker"
@@ -253,7 +284,7 @@ export function MessageInput({
         </div>
 
         <p className="text-center text-[10px] text-text-muted/40 mt-2">
-          End-to-end encrypted · Enter to send · Esc to cancel reply
+          End-to-end encrypted · Max 5MB · Enter to send · Esc to cancel reply
         </p>
       </div>
     </div>

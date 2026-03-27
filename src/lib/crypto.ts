@@ -133,4 +133,22 @@ export async function generateKeyFingerprint(keyBase64: string): Promise<string>
     .join("");
   // Return first 16 chars in groups of 4
   return hex.slice(0, 16).match(/.{4}/g)!.join("-").toUpperCase();
+// ── File encryption ──────────────────────────────────────────────────────────
+export async function encryptFile(file: File, key: CryptoKey): Promise<{ encryptedData: ArrayBuffer; iv: string }> {
+  const arrayBuffer = await file.arrayBuffer();
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encryptedData = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    arrayBuffer
+  );
+  return {
+    encryptedData,
+    iv: btoa(String.fromCharCode(...iv)),
+  };
+}
+
+export async function decryptFile(encryptedData: ArrayBuffer, ivBase64: string, key: CryptoKey): Promise<ArrayBuffer> {
+  const iv = Uint8Array.from(atob(ivBase64), c => c.charCodeAt(0));
+  return crypto.subtle.decrypt({ name: "AES-GCM", iv }, key, encryptedData);
 }
