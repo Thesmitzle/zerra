@@ -133,6 +133,7 @@ export async function generateKeyFingerprint(keyBase64: string): Promise<string>
     .join("");
   // Return first 16 chars in groups of 4
   return hex.slice(0, 16).match(/.{4}/g)!.join("-").toUpperCase();
+}
 // ── File encryption ──────────────────────────────────────────────────────────
 export async function encryptFile(file: File, key: CryptoKey): Promise<{ encryptedData: ArrayBuffer; iv: string }> {
   const arrayBuffer = await file.arrayBuffer();
