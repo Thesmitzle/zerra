@@ -382,11 +382,7 @@ export default function LandingPage() {
           </div>
         )}
 
-        {/* Trust pills */}
       
-          ))}
-        </div>
-
         {/* Footer */}
         <div style={{ textAlign: "center" }}>
           <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "10px", color: "#9CA3AF", opacity: 0.45, fontFamily: "var(--font-outfit)" }}>
