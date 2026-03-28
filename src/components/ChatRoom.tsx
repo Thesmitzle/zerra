@@ -261,11 +261,10 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
     });
     socket.on("user-left", ({ name, participantCount }: any) => {
       addSystem(`${name} left the room`);
-socket.on("room-expired", () => {
-  alert("This room has expired. You will be redirected.");
-  window.location.href = "/";
-});
       setRoomMeta((prev) => prev ? { ...prev, participantCount } : null);
+    });
+    socket.on("room-expired", () => {
+      setRoomError("This room has expired.");
     });
     socket.on("peer-typing", ({ name, isTyping }: TypingState) => {
       if (isTyping) {
