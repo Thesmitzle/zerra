@@ -89,17 +89,12 @@ export function WelcomeModal({ onEnter }: WelcomeModalProps) {
         {/* Content */}
         <div style={{ padding: "14px 20px 20px" }}>
 
-          {/* Headline */}
-          <h1 style={{ fontSize: "22px", fontWeight: 800, lineHeight: 1.15, margin: "0 0 10px", letterSpacing: "-0.02em", fontFamily: "var(--font-syne)" }}>
-            <span style={{ color: "#E5E7EB" }}>Chat Freely.</span>
-            <br />
-            <span style={{ color: "#00FFC6", textShadow: "0 0 30px rgba(0,255,198,0.4), 0 0 60px rgba(0,255,198,0.15)" }}>Zerra Knows Nothing.</span>
-          </h1>
-
-          {/* Terminal status line */}
-          <div style={{ fontFamily: "monospace", fontSize: "10px", color: "rgba(0,255,198,0.6)", marginBottom: "14px", lineHeight: 1.7 }}>
-            <span style={{ color: "rgba(0,255,198,0.3)" }}>&gt;</span> Zero-knowledge protocol active.<br />
-            <span style={{ color: "rgba(0,255,198,0.3)" }}>&gt;</span> Server blind mode: <span style={{ color: "#00FFC6" }}>ON</span>
+          {/* Terminal headline */}
+          <div style={{ fontFamily: "monospace", fontSize: "10px", color: "rgba(0,255,198,0.6)", marginBottom: "14px", lineHeight: 1.9 }}>
+            <span style={{ color: "rgba(0,255,198,0.3)" }}>&gt;</span> Initializing secure tunnel...<br />
+            <span style={{ color: "rgba(0,255,198,0.3)" }}>&gt;</span> Zero-knowledge protocol: <span style={{ color: "#00FFC6" }}>ACTIVE</span><br />
+            <span style={{ color: "rgba(0,255,198,0.3)" }}>&gt;</span> Server blind mode: <span style={{ color: "#00FFC6" }}>ON</span><br />
+            <span style={{ color: "rgba(0,255,198,0.3)" }}>&gt;</span> <span style={{ color: "#E5E7EB", fontWeight: 700 }}>chat_freely</span><span style={{ color: "rgba(0,255,198,0.4)" }}>.</span><span style={{ color: "#00FFC6", fontWeight: 700, textShadow: "0 0 12px rgba(0,255,198,0.6)" }}>zerra_knows_nothing</span>
           </div>
 
           {/* Trust pills — cyber style */}
