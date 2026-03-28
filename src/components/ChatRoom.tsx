@@ -293,11 +293,21 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
 
   async function handleSend(text: string, selfDestructMs: number, reply?: ReplyTo) {
     if (!cryptoKey || !displayName) return;
+    const socket = getSocket();
+    if (!socket.connected) {
+      setConnected(false);
+      return;
+    }
     const { encryptedData, iv } = await encryptMessage(text, cryptoKey);
-    getSocket().emit("send-message", {
+    socket.emit("send-message", {
       encryptedData, iv, selfDestructMs,
       messageId: uuidv4(),
       replyTo: reply || null,
+    }, (res: any) => {
+      if (res?.error) {
+        console.error("[Zerra] Send error:", res.error);
+        setConnected(false);
+      }
     });
     setReplyTo(null);
   }
