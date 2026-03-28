@@ -367,17 +367,17 @@ export default function LandingPage() {
       
         {/* Footer */}
         <div style={{ textAlign: "center" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "10px", color: "#9CA3AF", opacity: 0.45, fontFamily: "var(--font-outfit)" }}>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", fontSize: "9px", color: "rgba(156,163,175,0.45)", fontFamily: "monospace", letterSpacing: "0.05em" }}>
             <span style={{ display: "inline-block", width: "6px", height: "6px", borderRadius: "50%", background: "#00FFC6", boxShadow: "0 0 6px rgba(0,255,198,0.8)", flexShrink: 0 }} />
-            <span>Invite only · No accounts · No logs ·</span>
-            <span style={{ color: "#E5E7EB", fontWeight: 600 }}>AlphaGe3k</span>
-            <span>·</span>
-            <a href="/zerra-about.pdf" target="_blank" rel="noopener noreferrer" style={{ color: "#00FFC6", fontWeight: 600, textDecoration: "none", opacity: 1 }}>About</a>
-            <span>·</span>
-            <a href="mailto:alphage3k@gmail.com" title="Contact" style={{ color: "#9CA3AF", textDecoration: "none", display: "flex", alignItems: "center", opacity: 1 }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                <rect x="2" y="4" width="20" height="16" rx="2" stroke="#9CA3AF" strokeWidth="1.5"/>
-                <path d="M2 7l10 7 10-7" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round"/>
+            <span>invite_only · no_accounts · no_logs ·</span>
+            <span style={{ color: "#EF4444", fontWeight: 700, textShadow: "0 0 8px rgba(239,68,68,0.6)", letterSpacing: "0.08em" }}>AlphaGe3k</span>
+            <span style={{ color: "rgba(156,163,175,0.3)" }}>·</span>
+            <a href="/zerra-about.pdf" target="_blank" rel="noopener noreferrer" style={{ color: "rgba(0,255,198,0.5)", fontWeight: 600, textDecoration: "none", letterSpacing: "0.08em" }}>about</a>
+            <span style={{ color: "rgba(156,163,175,0.3)" }}>·</span>
+            <a href="mailto:alphage3k@gmail.com" title="Contact" style={{ textDecoration: "none", display: "flex", alignItems: "center" }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none">
+                <rect x="2" y="4" width="20" height="16" rx="2" stroke="#EF4444" strokeWidth="1.5"/>
+                <path d="M2 7l10 7 10-7" stroke="#EF4444" strokeWidth="1.5" strokeLinecap="round"/>
               </svg>
             </a>
           </div>
