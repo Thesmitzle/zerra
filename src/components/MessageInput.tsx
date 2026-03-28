@@ -285,7 +285,7 @@ style={{ width: "220px", bottom: "48px", left: 0, maxHeight: "280px", overflowY:
 
         <p className="text-center text-[10px] text-text-muted/40 mt-2">
   End-to-end encrypted · Max 5MB · Enter to send · Esc to cancel reply
-  {" · "}Before uploading attachments, clean metadata with {" "}<a href="https://clean.zerra.chat" target="_blank" rel="noopener noreferrer" style={{ color: "#00FFC6", opacity: 0.7, textDecoration: "none" }}>Zerra Clean</a>>
+  {" · "}Before uploading attachments, clean metadata with {" "}<a href="https://clean.zerra.chat" target="_blank" rel="noopener noreferrer" style={{ color: "#00FFC6", opacity: 0.7, textDecoration: "none" }}>Zerra Clean</a>
 </p>
       </div>
     </div>
