@@ -62,13 +62,18 @@ async function deleteMessage(roomId, messageId) {
   await redis.del(`msg:${roomId}:${messageId}`);
 }
 
-// ── Rate limiter — poruke ─────────────────────────────────────────────────────
+// ── Rate limiter — poruke (sliding window, dopušta burst) ─────────────────────
 const rateLimits = new Map();
 function isRateLimited(socketId) {
   const now = Date.now();
-  const last = rateLimits.get(socketId) || 0;
-  if (now - last < 1000) return true;
-  rateLimits.set(socketId, now);
+  const WINDOW_MS = 3000;  // 3 sekunde prozor
+  const MAX_MSGS  = 5;     // max 5 poruka u tom prozoru
+
+  if (!rateLimits.has(socketId)) rateLimits.set(socketId, []);
+  const timestamps = rateLimits.get(socketId).filter(t => now - t < WINDOW_MS);
+  if (timestamps.length >= MAX_MSGS) return true;
+  timestamps.push(now);
+  rateLimits.set(socketId, timestamps);
   return false;
 }
 
@@ -145,14 +150,11 @@ app.prepare().then(() => {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
-      // Provjeri postoji li soba
       const room = await getRoom(roomId);
       if (!room) return res.status(404).json({ error: "Room not found or expired" });
 
-      // Generiraj file ID
       const fileId = uuidv4().replace(/-/g, "").slice(0, 16);
 
-      // Spremi enkriptirani blob u Redis (kao base64)
       const ttl = await redis.ttl(`room:${roomId}`);
       if (ttl <= 0) return res.status(404).json({ error: "Room expired" });
 
@@ -184,7 +186,6 @@ app.prepare().then(() => {
 
       const fileData = JSON.parse(raw);
 
-      // Vrati enkriptirani blob + metadata
       res.json({
         fileName: fileData.fileName,
         fileType: fileData.fileType,
@@ -203,11 +204,16 @@ app.prepare().then(() => {
 
   const httpServer = createServer(expressApp);
 
+  // ── Socket.io — s povećanim timeoutima ───────────────────────────────────────
   const io = new Server(httpServer, {
     cors: {
       origin: dev ? "*" : process.env.NEXT_PUBLIC_APP_URL,
       methods: ["GET", "POST"],
     },
+    pingTimeout: 60000,      // 60s prije nego server proglasi klijenta mrtvim
+    pingInterval: 25000,     // ping svakih 25s
+    connectTimeout: 45000,   // 45s za uspostavu konekcije
+    maxHttpBufferSize: 5e6,  // 5MB — konzistentno s multer limitom
   });
 
   const roomParticipants = new Map();
@@ -235,7 +241,7 @@ app.prepare().then(() => {
 
     socket.on("send-message", async (payload, callback) => {
       if (!currentRoomId) return callback?.({ error: "Nisi u sobi" });
-      if (isRateLimited(socket.id)) return callback?.({ error: "Previše poruka" });
+      if (isRateLimited(socket.id)) return callback?.({ error: "Previše poruka — uspori malo" });
       try {
         const room = await getRoom(currentRoomId);
         if (!room) return callback?.({ error: "Soba je istekla" });
@@ -301,12 +307,12 @@ app.prepare().then(() => {
       rateLimits.delete(socket.id);
     });
   });
-// Provjera isteklih soba svakih 30 sekundi
+
+  // Provjera isteklih soba svakih 30 sekundi
   setInterval(async () => {
     for (const [roomId, participants] of roomParticipants.entries()) {
       const room = await getRoom(roomId);
       if (!room) {
-        // Soba istekla — kickaj sve korisnike
         io.to(roomId).emit("room-expired");
         participants.clear();
         roomParticipants.delete(roomId);
@@ -314,6 +320,7 @@ app.prepare().then(() => {
       }
     }
   }, 30 * 1000);
+
   httpServer.listen(port, hostname, () => {
     console.log(`\n🔐 Zerra je live → http://${hostname}:${port}`);
     console.log(`   Mode: ${dev ? "development" : "production"}`);
