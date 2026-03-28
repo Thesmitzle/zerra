@@ -203,8 +203,8 @@ export function MessageInput({
             {showEmojiPicker && (
               <div
                 id="emoji-picker"
-                className="absolute bottom-12 left-0 glass border border-border rounded-2xl p-3 z-30 shadow-xl"
-                style={{ width: "220px" }}
+                className="absolute glass border border-border rounded-2xl p-3 z-30 shadow-xl"
+style={{ width: "220px", bottom: "48px", left: 0, maxHeight: "280px", overflowY: "auto" }}
               >
                 <p className="text-xs text-text-muted mb-2 px-1" style={{ fontFamily: "var(--font-outfit)" }}>
                   Trending
