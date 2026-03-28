@@ -257,7 +257,16 @@ export default function LandingPage() {
             <span style={{ color: "#E5E7EB" }}>The server never sees your words.</span>
           </p>
         </div>
-
+{/* Cyber tagline */}
+{!codeVerified && (
+  <div style={{ textAlign: "center", marginBottom: "12px" }}>
+    <p style={{ fontFamily: "monospace", fontSize: "11px", color: "rgba(0,255,198,0.4)", letterSpacing: "0.06em", margin: 0, lineHeight: 1.6 }}>
+      <span style={{ color: "rgba(0,255,198,0.2)" }}>{"///"}</span>{" "}
+      If you&apos;re not paying, you are the product.{" "}
+      <span style={{ color: "#00FFC6" }}>Here, you pay with crypto.</span>
+    </p>
+  </div>
+)}
         {/* Access code gate */}
         {!codeVerified ? (
           <div style={{ background: "rgba(11,11,15,0.9)", border: "1px solid rgba(0,255,198,0.2)", borderRadius: "16px", overflow: "hidden", backdropFilter: "blur(20px)", marginBottom: "16px", boxShadow: "0 0 40px rgba(0,255,198,0.05), inset 0 0 40px rgba(0,255,198,0.02)" }}>
@@ -374,17 +383,7 @@ export default function LandingPage() {
         )}
 
         {/* Trust pills */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "6px", marginBottom: "14px" }}>
-          {[
-            { icon: "🔑", label: "AES-256-GCM", sub: "Encryption" },
-            { icon: "👁️", label: "Zero knowledge", sub: "Server blind" },
-            { icon: "💣", label: "Self-destruct", sub: "Auto-delete" },
-          ].map((item) => (
-            <div key={item.label} style={{ background: "rgba(0,255,198,0.03)", border: "1px solid rgba(0,255,198,0.08)", borderRadius: "10px", padding: "8px 4px", textAlign: "center", backdropFilter: "blur(8px)" }}>
-              <div style={{ fontSize: "14px", marginBottom: "3px" }}>{item.icon}</div>
-              <div style={{ fontSize: "9px", fontWeight: 600, color: "#E5E7EB" }}>{item.label}</div>
-              <div style={{ fontSize: "8px", color: "#9CA3AF", marginTop: "1px" }}>{item.sub}</div>
-            </div>
+      
           ))}
         </div>
 
