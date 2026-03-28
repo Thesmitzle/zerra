@@ -301,7 +301,19 @@ app.prepare().then(() => {
       rateLimits.delete(socket.id);
     });
   });
-
+// Provjera isteklih soba svakih 30 sekundi
+  setInterval(async () => {
+    for (const [roomId, participants] of roomParticipants.entries()) {
+      const room = await getRoom(roomId);
+      if (!room) {
+        // Soba istekla — kickaj sve korisnike
+        io.to(roomId).emit("room-expired");
+        participants.clear();
+        roomParticipants.delete(roomId);
+        console.log(`[Zerra] Room ${roomId} expired — kicked all users`);
+      }
+    }
+  }, 30 * 1000);
   httpServer.listen(port, hostname, () => {
     console.log(`\n🔐 Zerra je live → http://${hostname}:${port}`);
     console.log(`   Mode: ${dev ? "development" : "production"}`);

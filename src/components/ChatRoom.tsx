@@ -261,6 +261,10 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
     });
     socket.on("user-left", ({ name, participantCount }: any) => {
       addSystem(`${name} left the room`);
+socket.on("room-expired", () => {
+  alert("This room has expired. You will be redirected.");
+  window.location.href = "/";
+});
       setRoomMeta((prev) => prev ? { ...prev, participantCount } : null);
     });
     socket.on("peer-typing", ({ name, isTyping }: TypingState) => {
@@ -275,7 +279,7 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
     return () => {
       socket.off("connect"); socket.off("disconnect"); socket.off("new-message");
       socket.off("message-deleted"); socket.off("new-file");
-      socket.off("user-joined"); socket.off("user-left"); socket.off("peer-typing");
+      socket.off("user-joined"); socket.off("user-left"); socket.off("peer-typing"); socket.off("room-expired");
     };
   }, [keyLoaded, cryptoKey, addMessage, addSystem]);
 
