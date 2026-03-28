@@ -261,10 +261,11 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
     });
     socket.on("user-left", ({ name, participantCount }: any) => {
       addSystem(`${name} left the room`);
+socket.on("room-expired", () => {
+  alert("This room has expired. You will be redirected.");
+  window.location.href = "/";
+});
       setRoomMeta((prev) => prev ? { ...prev, participantCount } : null);
-    });
-    socket.on("room-expired", () => {
-      setRoomError("This room has expired.");
     });
     socket.on("peer-typing", ({ name, isTyping }: TypingState) => {
       if (isTyping) {
@@ -385,33 +386,46 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col mesh-bg noise" style={{ backgroundImage: "radial-gradient(ellipse at 30% 40%, rgba(0,255,198,0.03) 0%, transparent 50%), linear-gradient(#0B0B0F, #0B0B0F)" }}>
+    <div className="min-h-screen flex flex-col" style={{ background: "#0B0B0F", position: "relative" }}>
+      {/* Grid overlay */}
+      <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "linear-gradient(rgba(0,255,198,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,198,0.025) 1px, transparent 1px)", backgroundSize: "40px 40px", pointerEvents: "none" }} />
+      {/* Scanlines */}
+      <div style={{ position: "fixed", inset: 0, zIndex: 0, backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px)", pointerEvents: "none" }} />
+      {/* Radial glow */}
+      <div style={{ position: "fixed", inset: 0, zIndex: 0, background: "radial-gradient(ellipse at 30% 40%, rgba(0,255,198,0.04) 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, rgba(59,130,246,0.03) 0%, transparent 50%)", pointerEvents: "none" }} />
+      <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <TopBar roomId={roomId} expiresAt={roomMeta?.expiresAt ?? null} participantCount={roomMeta?.participantCount ?? 0} keyBase64={keyBase64} keyLoaded={keyLoaded} />
 
       {!connected && keyLoaded && (
-        <div style={{ textAlign: "center", padding: "8px", fontSize: "12px", background: "rgba(234,179,8,0.1)", borderBottom: "1px solid rgba(234,179,8,0.2)" }}>
+        <div style={{ textAlign: "center", padding: "8px 16px", fontSize: "11px", background: "rgba(11,11,15,0.95)", borderBottom: "1px solid rgba(234,179,8,0.2)", display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", fontFamily: "var(--font-dm-mono), monospace" }}>
+          <span style={{ color: "rgba(234,179,8,0.7)", letterSpacing: "0.08em" }}>[WARN] Connection lost_</span>
           <button
             onClick={() => window.location.reload()}
-            style={{ background: "#00FFC6", color: "#0B0B0F", fontSize: "11px", fontWeight: 700, padding: "4px 12px", borderRadius: "8px", border: "none", cursor: "pointer" }}
+            style={{ background: "#00FFC6", color: "#0B0B0F", fontSize: "10px", fontWeight: 800, padding: "4px 14px", borderRadius: "6px", border: "none", cursor: "pointer", letterSpacing: "0.08em", fontFamily: "inherit" }}
           >
-            Reconnect
+            RECONNECT
           </button>
         </div>
       )}
 
       {uploading && (
-        <div style={{ textAlign: "center", padding: "8px", fontSize: "12px", background: "rgba(0,255,198,0.1)", borderBottom: "1px solid rgba(0,255,198,0.2)", color: "#00FFC6" }}>
-          🔐 Encrypting and uploading file…
+        <div style={{ textAlign: "center", padding: "8px 16px", fontSize: "11px", background: "rgba(11,11,15,0.95)", borderBottom: "1px solid rgba(0,255,198,0.2)", color: "#00FFC6", fontFamily: "var(--font-dm-mono), monospace", letterSpacing: "0.08em" }}>
+          <span style={{ color: "rgba(0,255,198,0.5)" }}>&gt;</span> ENCRYPTING_FILE... <span style={{ opacity: 0.5 }}>AES-256-GCM</span>
         </div>
       )}
 
       <div className="flex-1 overflow-y-auto px-4 py-6" id="chat-messages">
         <div className="max-w-3xl mx-auto">
           {entries.length === 0 && (
-            <div className="text-center text-text-muted text-sm py-16">
-              <div className="text-3xl mb-3">🔐</div>
-              <p className="font-medium text-text-primary mb-1">Room is ready</p>
-              <p>Messages and files are encrypted before leaving your device.</p>
+            <div style={{ textAlign: "center", padding: "64px 16px", fontFamily: "var(--font-dm-mono), monospace" }}>
+              <div style={{ display: "inline-block", marginBottom: "16px", opacity: 0.4 }}>
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <path d="M16 3L29 10v12L16 29 3 22V10L16 3z" stroke="#00FFC6" strokeWidth="1.2" strokeLinejoin="round"/>
+                  <path d="M16 3v26M3 10l13 8 13-8" stroke="#00FFC6" strokeWidth="1.2" strokeLinejoin="round"/>
+                </svg>
+              </div>
+              <p style={{ fontSize: "11px", color: "rgba(0,255,198,0.5)", letterSpacing: "0.1em", margin: "0 0 4px" }}>ROOM_READY</p>
+              <p style={{ fontSize: "10px", color: "rgba(156,163,175,0.5)", letterSpacing: "0.06em", margin: 0 }}>Messages encrypted before leaving your device.</p>
             </div>
           )}
 
@@ -458,6 +472,7 @@ export function ChatRoom({ roomId }: ChatRoomProps) {
         replyTo={replyTo}
         onCancelReply={() => setReplyTo(null)}
       />
+      </div>
     </div>
   );
 }

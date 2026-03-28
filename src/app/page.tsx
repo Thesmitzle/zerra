@@ -238,25 +238,7 @@ export default function LandingPage() {
       {/* Content */}
       <div style={{ position: "relative", zIndex: 10, width: "100%", maxWidth: "420px" }}>
 
-        {/* Hero */}
-        <div style={{ textAlign: "center", marginBottom: "24px" }}>
-          {/* Hex logo animirani */}
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px" }}>
-            <div style={{ position: "relative", width: "48px", height: "48px" }}>
-              <img src="/zerra-logo2.png" alt="Zerra" style={{ width: "48px", height: "48px", objectFit: "contain", filter: "drop-shadow(0 0 12px rgba(0,255,198,0.6))", animation: "pulse 3s ease-in-out infinite" }} />
-            </div>
-          </div>
 
-          <h1 style={{ fontSize: "30px", fontWeight: 800, lineHeight: 1.1, margin: "0 0 6px", letterSpacing: "-0.03em", fontFamily: "var(--font-syne)" }}>
-            <span style={{ color: "#E5E7EB" }}>Chat without</span>
-            <br />
-            <span style={{ color: "#00FFC6", textShadow: "0 0 40px rgba(0,255,198,0.5), 0 0 80px rgba(0,255,198,0.2)" }}>leaving traces</span>
-          </h1>
-          <p style={{ fontSize: "11.5px", color: "#9CA3AF", lineHeight: 1.6, margin: 0, fontFamily: "var(--font-outfit)" }}>
-            End-to-end encrypted. Zero knowledge.{" "}
-            <span style={{ color: "#E5E7EB" }}>The server never sees your words.</span>
-          </p>
-        </div>
 {/* Cyber tagline */}
 {!codeVerified && (
   <div style={{ textAlign: "center", marginBottom: "12px" }}>
