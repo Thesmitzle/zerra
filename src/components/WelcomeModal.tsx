@@ -152,19 +152,10 @@ export function WelcomeModal({ onEnter }: WelcomeModalProps) {
           </button>
 
           {/* Fine print */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", marginTop: "10px" }}>
-            <p style={{ margin: 0, fontSize: "9px", color: "rgba(156,163,175,0.4)", fontFamily: "monospace", letterSpacing: "0.05em" }}>
-              No accounts · No logs · No traces
+          <div style={{ textAlign: "center", marginTop: "10px" }}>
+            <p style={{ margin: 0, fontSize: "9px", color: "rgba(0,255,198,0.2)", fontFamily: "monospace", letterSpacing: "0.08em" }}>
+              <span style={{ color: "rgba(0,255,198,0.15)" }}>//</span> no_accounts · no_logs · no_traces
             </p>
-            <div style={{ display: "flex", alignItems: "center", gap: "4px", opacity: 0.3 }}>
-              <div style={{ width: "14px", height: "14px", borderRadius: "4px", background: "#00FFC6", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="8" height="8" viewBox="0 0 18 18" fill="none">
-                  <path d="M9 1.5L16.5 5.25V12.75L9 16.5L1.5 12.75V5.25L9 1.5Z" stroke="#0B0B0F" strokeWidth="2" strokeLinejoin="round"/>
-                  <circle cx="9" cy="9" r="2.5" fill="#0B0B0F"/>
-                </svg>
-              </div>
-              <span style={{ fontSize: "9px", fontWeight: 700, color: "#E5E7EB", fontFamily: "monospace" }}>Zerra</span>
-            </div>
           </div>
         </div>
 
