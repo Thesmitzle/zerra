@@ -250,9 +250,9 @@ export default function LandingPage() {
             </p>
             <div style={{ marginBottom: "12px" }}>
               <input
-                type="text"
-                value={accessCode}
-                onChange={(e) => { setAccessCode(e.target.value); setCodeError(false); }}
+                type="password"
+value={accessCode}
+onChange={(e) => { setAccessCode(e.target.value); setCodeError(false); }}
                 onKeyDown={(e) => e.key === "Enter" && verifyCode()}
                 placeholder="Enter access code"
                 maxLength={20}

@@ -6,14 +6,14 @@ export async function POST(req: NextRequest) {
     const { code } = JSON.parse(body);
     const validCodes = (process.env.ACCESS_CODE || "")
       .split(",")
-      .map((c) => c.trim().toUpperCase())
+      .map((c) => c.trim())
       .filter(Boolean);
 
     if (validCodes.length === 0) {
       return NextResponse.json({ error: "No access codes configured" }, { status: 500 });
     }
 
-    if (validCodes.includes(code?.trim().toUpperCase())) {
+    if (validCodes.includes(code?.trim())) {
       return NextResponse.json({ success: true });
     }
 
@@ -22,4 +22,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Bad request" }, { status: 400 });
   }
 }
-
